@@ -315,4 +315,18 @@ class DBHelper
         return mysqli_affected_rows($this->link);
     }
 
+    public function delete($table, $where = 1){
+        if(is_array($where)){
+            foreach ($where as $key => $val) {
+                $condition = $key.'='.$val;
+            }
+        } else {
+            $condition = $where;
+        }
+        $sql = "delete from $table where $condition";
+        $this->query($sql);
+        //返回受影响的行数
+        return mysqli_affected_rows($this->link);
+    }
+
 }

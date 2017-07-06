@@ -1,32 +1,23 @@
 <?php
 
-class model{
+class model extends basis{
+    private $config_table;
     private $resume_table;
     private $account_table;
     private $condition_table;
-
-    const RESUME_INIT = 0;
-    const RESUME_RUN = 1;
-    const RESUME_SUC = 2;
-    const RESUME_NOT = 3; //非法参数
-    const RESUME_ERROR = 3;//参数异常
-    const RESUME_WORK = 4;//工作经验空
-    const ACCOUNT_INIT = 0; //初始
-    const ACCOUNT_RUN = 1; //正在使用
-    const ACCOUNT_LOGIN = 2; //重新登录
-    const ACCOUNT_ERROR = 3; //账号错误
-    const ACCOUNT_PHONE = 4; //异地短信验证
-    const CONDITION_INIT = 0;
-    const CONDITION_RUN = 1;
-    const CONDITION_SUC = 2;
-    const CONDITION_ERROR = 3;//抓取异常
-    const CONDITION_NULL = 4;//无搜索结果
+    private $education_table;
+    private $project_table;
+    private $workexps_table;
 
     public  function __construct($config)
     {
+        $this->config_table = $config['config_table'];
         $this->resume_table = $config['resume_table'];
         $this->account_table = $config['account_table'];
         $this->condition_table = $config['condition_table'];
+        $this->education_table = $config['education_table'];
+        $this->project_table = $config['project_table'];
+        $this->workexps_table = $config['workexps_table'];
     }
 
     function init_start(){
@@ -35,14 +26,16 @@ class model{
         $GLOBALS['db']->update($this->resume_table, array('status'=>self::RESUME_INIT) ,"status !=".self::RESUME_SUC);
     }
 
-    function get_conditions_num(){
-        $sql = "select count(rec_id) as num from conditions";
-        $num = $GLOBALS['db']->getOne($sql);
-        return $num;
+    function delete_conditions(){
+        $GLOBALS['db']->delete($this->condition_table);
     }
 
     function update_conditions_page($total_page,$rec_id){
         return $GLOBALS['db']->update($this->condition_table, array('total_page'=>$total_page) ,"rec_id=".$rec_id);
+    }
+
+    function update_conditions_suc($rec_id){
+        return $GLOBALS['db']->update($this->condition_table, array('status'=>self::CONDITION_SUC) ,"rec_id=".$rec_id);
     }
 
     function update_conditions_init($rec_id){
@@ -83,23 +76,33 @@ class model{
         return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$resume_id);
     }
 
-    function update_resume_not($resume_id){
-        $data = array('status'=>self::RESUME_NOT );
+    function grab_resume_suc($resume_id,$path){
+        $data = array('status'=>self::RESUME_SUC ,'path'=>$path, 'crawler_time' => time());
         return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$resume_id);
     }
 
-    function grab_resume_suc($resume_id,$path){
-        $data = array('status'=>self::RESUME_SUC ,'path'=>$path, 'crawlertime' => date('Y-m-d H:i:s'));
+    function grab_resume_parse_suc($resume_id){
+        $data = array('status'=>self::RESUME_SUC ,'parse_time' => time());
         return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$resume_id);
     }
 
     function grab_resume_fail($resume_id,$path){
-        $data = array('status'=>self::RESUME_ERROR ,'path'=>$path, 'crawlertime' => date('Y-m-d H:i:s'));
+        $data = array('status'=>self::RESUME_ERROR ,'path'=>$path);
         return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$resume_id);
     }
 
     function update_resume_fail($resume_id){
         $data = array('status'=>self::RESUME_ERROR);
+        return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$resume_id);
+    }
+
+    function update_resume_param($resume_id){
+        $data = array('status'=>self::RESUME_PARAM);
+        return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$resume_id);
+    }
+
+    function update_resume_body($resume_id){
+        $data = array('status'=>self::RESUME_BODY);
         return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$resume_id);
     }
 
@@ -137,7 +140,7 @@ class model{
     function get_account(){
         while(true){
             $time = time();
-            $sql = "select * from account where status = ".self::ACCOUNT_INIT ." and error_num < 50 and used_time < $time";
+            $sql = "select * from ".$this->account_table." where status = ".self::ACCOUNT_INIT ." and error_num < 50 and used_time < $time";
             $account = $GLOBALS['db']->getRow($sql);
             if(empty($account)){
                 echo "have not accout\n\r";
@@ -146,20 +149,26 @@ class model{
                 continue;
             }
 
-            $res = $GLOBALS['db']->update($this->account_table,array('status'=>self::ACCOUNT_RUN),"account_id=".$account['account_id'].' and status = '.self::ACCOUNT_INIT);
-            echo "get one account\n\r";
-            save_log('获得可用账号，当前账号ID : '.$account['account_id']);
-            if($res) return $account;
+            $low_time = ACCOUNT_SLEEP_TIME - 20;
+            $high_time = ACCESS_COUNT_LIMIT + 20;
+            $used_time = time() + rand($low_time, $high_time);
+            $res = $GLOBALS['db']->update($this->account_table, array('status' =>self::ACCOUNT_INIT , 'used_time' => $used_time), "account_id=" . $account['account_id'].' and status = '.self::ACCOUNT_INIT);
+
+            if($res){
+                echo "get one account and update account status and used_time\n\r";
+                save_log('获得可用账号，休息'.$used_time.'秒 ,当前账号ID : '.$account['account_id']);
+                return $account;
+            }
         }
     }
 
     function get_search_info(){
         while(true){
-            $sql = "select * from conditions where status = ".self::CONDITION_INIT ." and cur_page <= total_page";
+            $sql = "select * from ".$this->condition_table." where status = ".self::CONDITION_INIT ." order by sort desc";
             $row = $GLOBALS['db']->getRow($sql);
 
             if(empty($row)) return '';
-
+            echo "get conditions\n\r";
             $res = $GLOBALS['db']->update($this->condition_table,array('status'=>self::CONDITION_RUN),"rec_id=".$row['rec_id'].' and status = '.self::CONDITION_INIT);
             if($res) return $row;
         }
@@ -167,7 +176,9 @@ class model{
 
     function get_resume_info($account_name){
         while(true){
-            $sql = "select * from resume where status = ".self::RESUME_INIT ." and account = '".$account_name."'";
+            $time = strtotime(date('Y-m-d H:i:s').'-7 days');
+            //该账号下七天前没抓过的简历，七天之内不重复抓
+            $sql = "select * from ".$this->resume_table." where status = ".self::RESUME_INIT ." and account = '".$account_name."' and crawlertime < ".$time;
             $row = $GLOBALS['db']->getRow($sql);
 
             if(empty($row)) return '';
@@ -177,13 +188,100 @@ class model{
         }
     }
 
-    function update_account($account){
-        $low_time = ACCOUNT_SLEEP_TIME - 20;
-        $high_time = ACCESS_COUNT_LIMIT + 20;
-        $used_time = time() + rand($low_time, $high_time);
-        echo "update account status and used_time\n\r";
-        save_log('账号使用完毕，休息'.$used_time.'秒 , 当前账号 : '.$account['account_id']);
-        return $GLOBALS['db']->update($this->account_table, array('status' =>self::ACCOUNT_INIT , 'used_time' => $used_time), "account_id=" . $account['account_id']);
+    function get_parse_info(){
+        while(true){
+            $sql = "select * from ".$this->resume_table." where parse_status = ".self::RESUME_INIT ;
+            $row = $GLOBALS['db']->getRow($sql);
+
+            if(empty($row)) return '';
+            echo "get one resumt\n\r";
+            $res = $GLOBALS['db']->update($this->resume_table,array('parse_status'=>self::RESUME_RUN),"resume_id=".$row['resume_id'].' and parse_status = '.self::RESUME_INIT);
+            if($res) return $row;
+        }
+    }
+
+    function get_config(){
+        $sql = "select * from ".$this->config_table;
+        return $GLOBALS['db']->getAll($sql);
+    }
+
+    function set_config_condition(){
+        $GLOBALS['db']->update($this->config_table , array('status'=>self::CONFIG_SUC , 'finish_time'=>date('Y-m-d H:i:s')),"code='".CONDDTION_STATUS . "'");
+    }
+
+    function set_config_resume(){
+        $GLOBALS['db']->update($this->config_table , array('status'=>self::CONFIG_SUC , 'finish_time'=>date('Y-m-d H:i:s')),"code='".RESUME_STATSU . "'");
+    }
+
+    function save_workepx($resume_id,$new_data){
+        $table_name = $this->workexps_table;
+        $key_name = 'work_id';
+        $sign1 = 'corporation_name';
+        $sign2 = 'corporation_type';
+        $sign3 = 'position_name';
+        $this->parse_common_save($resume_id,$new_data,$table_name,$key_name,$sign1,$sign2,$sign3);
+    }
+
+    function save_project($resume_id,$new_data){
+        $table_name = $this->project_table;
+        $key_name = 'pro_id';
+        $sign1 = 'project_name';
+        $sign2 = 'corporation_name';
+        $sign3 = 'position_name';
+        $this->parse_common_save($resume_id,$new_data,$table_name,$key_name,$sign1,$sign2,$sign3);
+    }
+
+    function save_education($resume_id,$new_data){
+        $table_name = $this->education_table;
+        $key_name = 'edu_id';
+        $sign1 = 'school_name';
+        $sign2 = 'discipline_name';
+        $sign3 = 'degree';
+        $this->parse_common_save($resume_id,$new_data,$table_name,$key_name,$sign1,$sign2,$sign3);
+    }
+
+    private function parse_common_save($resume_id ,$new_data ,$table_name , $key_name ,$sign1,$sign2,$sign3){
+        if(empty($new_data)) return false;
+
+        $sql = "select * from $table_name where resume_id = $resume_id";
+        $old_data = $GLOBALS['db']->getAll($sql);
+
+        if(empty($old_data)){
+            foreach($new_data as $new){
+                $new['create_time'] = $new['update_time'] = date('Y-m-d H:i:s');
+                $GLOBALS['db']->insert($table_name,$new);
+            }
+            return true;
+        }
+
+        $old_list = $new_list = array();
+        foreach($new_data as $new){
+            $new_list[$new[$sign1]][$new[$sign2]][$new[$sign3]] = $new;
+        }
+
+        foreach($old_data as $old){
+            if(empty($new_list[$old[$sign1]][$old[$sign2]][$old[$sign3]])){
+                $GLOBALS['db']->delete($table_name , array($key_name=>$old[$key_name]));
+            }
+            $old_list[$old[$sign1]][$old[$sign2]][$old[$sign3]] = $old;
+        }
+
+        foreach($new_data as $new){
+            if(empty($old_list[$new[$sign1]][$new[$sign2]][$new[$sign3]])){
+                $new['create_time'] = $new['update_time'] = date('Y-m-d H:i:s');
+                $GLOBALS['db']->insert($table_name,$new);
+            }else{
+                $old_one = $old_list[$new[$sign1]][$new[$sign2]][$new[$sign3]];
+                $key_value = $old_one[$key_name];
+                unset($old_one[$key_name]);
+                unset($old_one['update_time']);
+                unset($old_one['create_time']);
+                if($old_one != $new){
+                    $new['update_time'] = date('Y-m-d H:i:s');
+                    $GLOBALS['db']->update($table_name , $new ,"$key_name=$key_value");
+                }
+            }
+        }
     }
 
 }

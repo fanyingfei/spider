@@ -1,11 +1,12 @@
 <?php
 
-include 'core/libraries/phpQuery.php';
-include 'core/common.php';
-include 'config/liepin.php';
-include 'core/crawler.php';
-include 'core/mysqli.php';
-include 'core/model.php';
+include_once 'libraries/phpQuery.php';
+include_once 'core/basis.php';
+include_once 'core/common.php';
+include_once 'config/liepin.php';
+include_once 'liepin/crawler.php';
+include_once 'core/mysqli.php';
+include_once 'core/model.php';
 
 define('ROOT_PATH', str_replace('index.php', '', str_replace('\\', '/', __FILE__)));
 
@@ -14,5 +15,4 @@ $model = new model($table);
 
 save_log('数据抓取开始');
 $crawler = new crawler();
-$crawler->get_conditions();
 $crawler->start();
