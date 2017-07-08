@@ -2,27 +2,18 @@
 
 class crawler extends basis
 {
-    private $config_resume_status = 0;
-    private $config_condition_status = 0;
-
     public function __construct(){
-        parent::__construct();
-        $config_list = $GLOBALS['model']->get_config();
-        foreach($config_list as $one){
-            if($one['code'] == CONDDTION_STATUS){
-                $this->config_condition_status = $one['status'];
-            }elseif($one['code'] == RESUME_STATSU){
-                $this->config_resume_status = $one['status'];
-            }
-        }
+
     }
 
     public function start(){
-        if(!$this->config_condition_status){
-            $this->get_conditions();
-        }else{
-            echo "search conditions already run \n\r";
+        $conditions_count = $GLOBALS['model']->get_conditions_count();
+        if($conditions_count > 0){
             save_log('搜索条件已经生成，无需重复生成');
+        }else{
+            save_log('开始生成搜索条件');
+            $this->get_conditions();
+            save_log('搜索条件生成完毕');
         }
 
         $GLOBALS['model']->init_start();
@@ -71,26 +62,25 @@ class crawler extends basis
                     $this->_save_search_url($generator_url,$city);
                 }
             }elseif(in_array($city,array('110','120','130','160','190','200','260'))){
-                foreach ($degrees as $degree) {
+                foreach ($degrees as $degree_low=>$degree_high) {
                     foreach ($sex as $se) {
                         $str = 'cs_id=&csc_id=&form_submit=1&sortflag=12&expendflag=1&pageSize=50&curPage=%%s&userHope=&resReward=&res_ids=&so_flag=&keys=&titleKeys=&company=&company_type=0&industrys=&jobtitles=&dqs=%s&workyearslow=&workyearshigh=&edulevellow=%s&edulevelhigh=%s&agelow=&agehigh=&sex=%s';
-                        $generator_url = sprintf($str, $city, $degree, $degree, $se);
-                        $this->_save_search_url($generator_url , $city , '' , $degree);
+                        $generator_url = sprintf($str, $city, $degree_low, $degree_high, $se);
+                        $this->_save_search_url($generator_url , $city , '' , $degree_low.'-'.$degree_high);
                     }
                 }
             }else{
                 foreach ($industries as $indus) {
-                    foreach ($degrees as $degree) {
+                    foreach ($degrees as $degree_low=>$degree_high) {
                         foreach ($sex as $se) {
                             $str = 'cs_id=&csc_id=&form_submit=1&sortflag=12&expendflag=1&pageSize=50&curPage=%%s&userHope=&resReward=&res_ids=&so_flag=&keys=&titleKeys=&company=&company_type=0&industrys=%s&jobtitles=&dqs=%s&workyearslow=&workyearshigh=&edulevellow=%s&edulevelhigh=%s&agelow=&agehigh=&sex=%s';
-                            $generator_url = sprintf($str, $indus, $city, $degree, $degree, $se);
-                            $this->_save_search_url($generator_url , $city , $indus , $degree);
+                            $generator_url = sprintf($str, $indus, $city, $degree_low, $degree_high, $se);
+                            $this->_save_search_url($generator_url , $city , $indus , $degree_low.'-'.$degree_high);
                         }
                     }
                 }
             }
         }
-        $GLOBALS['model']->set_config_condition();
     }
 
     /*
@@ -99,32 +89,25 @@ class crawler extends basis
     public function get_resume_list($account){
         $row = $GLOBALS['model']->get_search_info();
         if(empty($row)){
-            echo "resume list already crawler over , start crawler resume\n\r";
-            save_log('搜索条件生成的简历列表抓取完毕');
             return false;
         }
 
         //当前页面大于等于总页数时，已经是抓完了
         if($row['total_page'] > 0 && $row['cur_page'] >= $row['total_page']){
-            $GLOBALS['model']->update_conditions_suc($row['rec_id']);
+            $GLOBALS['model']->update_conditions_status(self::CONDITION_SUC,$row['rec_id']);
             return true;
         }
 
         $cur_page = $row['total_page'] > 0 ? $row['cur_page'] : 0 ;
 
         $search_url = sprintf($row['search_url'],$cur_page);
-        echo $row['rec_id']."---crawler resume list , current page : $cur_page \n\r";
         save_log('抓取搜索列表，当前列表ID : '.$row['rec_id'].' , 当前页数 : '.$cur_page);
 
 
         $url = SEARCH_RESUME_LIST .'?'. $search_url;
         $res = grab_curl($account,$url);
-        if(empty($res)){
-            $GLOBALS['model']->grab_conditions_fail($row['rec_id']);
-            return true;
-        }
 
-        if(!$this->deal_conditions($row['rec_id'],$res)){
+        if(!$this->deal_conditions($account,$row['rec_id'],$res)){
             return true;
         }
 
@@ -134,10 +117,10 @@ class crawler extends basis
         $num_str = pq('.pagerbar .addition')->text();
         if(preg_match('/共(\d+)页.*?/uis',$num_str,$match)){
             $total_page = $match[1];
-            if($total_page > $row['total_page']) $GLOBALS['model']->update_conditions_page($total_page,$row['rec_id']);
+            if($total_page > $row['total_page']) $GLOBALS['model']->update_conditions_total_page($total_page,$row['rec_id']);
         }else{
             save_log('搜索列表抓取失败，列表ID : '.$row['rec_id'] , 'error');
-            $GLOBALS['model']->grab_conditions_fail($row['rec_id']);
+            $GLOBALS['model']->update_conditions_status(self::CONDITION_ERROR,$row['rec_id']);
             return true;
         }
 
@@ -145,11 +128,13 @@ class crawler extends basis
             //返回解析此页登录时间不变简历的数量
             $exist_count = $this->save_resume_list($account['account']);
         }catch(Exception $e){
-            $GLOBALS['model']->grab_conditions_fail($row['rec_id']);
+            save_log('搜索列表保存失败，列表ID : '.$row['rec_id'] , 'error');
+            $GLOBALS['model']->update_conditions_status(self::CONDITION_ERROR,$row['rec_id']);
         }
-        if($this->config_resume_status && $exist_count > 25){
+        if($row['is_full'] && $exist_count > 25){
             //简历拆取完，当前页有一半登录时间没变过，说明后面的已经抓过了
-            $GLOBALS['model']->update_conditions_suc($row['rec_id']);
+            $GLOBALS['model']->update_conditions_status(self::CONDITION_SUC,$row['rec_id']);
+            save_log('当前页有一半登录时间没变过，后面的已经抓过了，当前搜索id : '.$row['rec_id']);
             return true;
         }
 
@@ -157,7 +142,7 @@ class crawler extends basis
         if($row['cur_page']+1 >= $total_page){
             $GLOBALS['model']->grab_conditions_suc($total_page,$row['rec_id']);
         }else{
-            $GLOBALS['model']->grab_conditions_curr($cur_page,$row['rec_id']);
+            $GLOBALS['model']->grab_conditions_cur_page($cur_page,$row['rec_id']);
         }
         save_log('搜索列表抓取成功，列表ID : '.$row['rec_id']);
         return true;
@@ -174,23 +159,20 @@ class crawler extends basis
             $one = array();
             $one['user_name'] = trim(pq($tr)->find('td.td-name a strong')->text());
             $one['sign'] = trim(pq($tr)->find('td.td-name a')->attr('data-id'));
-            $one['url'] = RESUME_DETAIL.'?res_id_encode='.$one['sign'];
             $one['sex'] = trim(pq($tr)->find('td')->eq(2)->text());
             $age = trim(pq($tr)->find('td')->eq(3)->text());
             $one['birth'] = date('Y') - intval($age);
             $one['agree'] = trim(pq($tr)->find('td')->eq(4)->attr('title'));
             $one['work_year'] = trim(pq($tr)->find('td')->eq(5)->text());
-            $one['work_place'] = trim(pq($tr)->find('td')->eq(6)->text());
-            $one['cur_position'] = htmlspecialchars(trim(pq($tr)->find('td')->eq(7)->attr('title')));
-            $one['cur_company'] = htmlspecialchars(trim(pq($tr)->find('td')->eq(8)->attr('title')));
+            $one['work_place'] = trim(pq($tr)->find('td')->eq(6)->attr('title'));
+            $one['cur_position'] = htmlspecialchars(trim(pq($tr)->find('td')->eq(7)->attr('title')),ENT_QUOTES);
+            $one['cur_company'] = htmlspecialchars(trim(pq($tr)->find('td')->eq(8)->attr('title')),ENT_QUOTES);
             $one['login_time'] = trim(pq($tr)->find('td')->eq(9)->text());
             $one['account'] = $account_name;
 
-            echo "crawler sign : ".$one['sign']." \n\r";
-
             $resume_info = $GLOBALS['model']->get_resume_by_sign($one['sign']);
             if(empty($resume_info)){
-                $one['create_time'] = $one['updatetime'] = date('Y-m-d H:i:s');
+                $one['create_time'] = $one['update_time'] = date('Y-m-d H:i:s');
                 $resume_id = $GLOBALS['model']->save_resume_one($one);
                 save_log('从搜索列表抓取简历信息 , 当前简历ID : '.$resume_id);
             }else{
@@ -214,63 +196,35 @@ class crawler extends basis
         $row = $GLOBALS['model']->get_resume_info($account['account']);
 
         if (empty($row)) {
-            save_log('这个猎头账号没有简历可以抓取');
+            save_log($account['account'].'账号没有简历可以抓取');
             return false; //返回false时去执行抓取搜索条件
         }
 
         if(!empty($row['crawlertime']) && strtotime($row['crawlertime'] . '7 days') > strtotime(date('Y-m-d H:i:s'))){
             //七天之内抓过的简历不抓了
-            $GLOBALS['model']->update_resume_suc($row['resume_id']);
-            echo 'this resume already crawler';
+            $GLOBALS['model']->update_resume_status(self::RESUME_SUC , $row['resume_id']);
             save_log('当前简历七天之内抓取过，无需再抓, 简历ID : '.$row['resume_id']);
             return true;
         }
 
-        $html = grab_curl($account, $row['url']);
+        $detail_url = RESUME_DETAIL.'?res_id_encode='.$row['sign'];
+        $html = grab_curl($account, $detail_url);
 
-        if(empty($html)){
-            $GLOBALS['model']->update_resume_fail($row['resume_id']);
-            return true;
-        }
-
-        echo "get this resume html";
-        save_log('得到简历详情，当前简历ID : '.$row['resume_id']);
+        if(!$this->deal_resume($account,$row['resume_id'],$html)) return true;
 
         $workexps = grab_curl($account,WORKEXPS_DETAIL ,'res_id_encode='.$row['sign']);
         if(empty($workexps)){
-            $GLOBALS['model']->update_resume_fail($row['resume_id']);
+            $GLOBALS['model']->update_resume_status(self::RESUME_NOT_WORKEPX , $row['resume_id']);
+            save_log('简历工作经验为空，当前简历ID : '.$row['resume_id']);
             return true;
         }
-
-        echo "get this resume workexps";
-        save_log('得到简历工作经验，当前简历ID : '.$row['resume_id']);
 
         $html = str_replace('<div class="resume-work"  id="workexp_anchor" >', '<div class="resume-work"  id="workexp_anchor" >' . $workexps, $html);
         $html = preg_replace('/\/\/(.*?)\.lietou-static\.com/','https://$1.lietou-static.com',$html);
         $html = preg_replace('/\/\/(.*?)\.liepin\.com/','https://$1.liepin.com',$html);
 
-        $dir = 'down/' . date('Y') . '/' . date('m') . '/' . date('d') . '/' . date('H') . '/';
-        if (!empty($row['path'])) {
-            $path = ROOT_PATH . $row['path'];
-        } else {
-            if (!file_exists($dir)) mkdir($dir, 0777, true);
-            $path = ROOT_PATH . $dir . $row['resume_id'] . '.html';
-        }
-
-        if(!$this->deal_resume($row['resume_id'],$html)) return true;
-
-        $strlen = file_put_contents($path, trim($html));//返回定写入字节数
-        echo 'resumt save html,bytes length : '.$strlen;
-
-        $file_path = str_replace(ROOT_PATH , '' , $path);
-
-        if ($strlen < 1000){
-            $GLOBALS['model']->grab_resume_fail($row['resume_id'],$file_path);
-            save_log('保存简历失败，当前简历ID : '.$row['resume_id'],'error');
-        }else{
-            $GLOBALS['model']->grab_resume_suc($row['resume_id'],$file_path);
-            save_log('保存简历，当前简历ID : '.$row['resume_id']);
-        }
+        $GLOBALS['model']->save_resume_detail($row,trim($html));
+        save_log('保存简历，当前简历ID : '.$row['resume_id']);
         return true;
     }
 
@@ -301,6 +255,39 @@ class crawler extends basis
      */
     function _region($response)
     {
+        $city_list = array(
+            '010'=>'北京',
+            '020'=>'上海',
+            '030'=>'天津',
+            '040'=>'重庆',
+            '050'=>'广东',
+            '060'=>'江苏省',
+            '070'=>'浙江省',
+            '080'=>'安徽省',
+            '090'=>'福建省',
+            '100'=>'甘肃省',
+            '110'=>'广西',
+            '120'=>'贵州省',
+            '130'=>'海南省',
+            '140'=>'河北省',
+            '150'=>'河南省',
+            '160'=>'黑龙江省',
+            '170'=>'湖北省',
+            '180'=>'湖南省',
+            '190'=>'吉林省',
+            '200'=>'江西省',
+            '210'=>'辽宁省',
+            '220'=>'内蒙古',
+            '230'=>'宁夏',
+            '240'=>'青海省',
+            '250'=>'山东省',
+            '260'=>'山西省',
+            '270'=>'陕西省',
+            '280'=>'四川省',
+            '290'=>'西藏',
+            '300'=>'新疆',
+            '310'=>'云南省'
+        );
         $rs = array();
         //暂时只取省
         if (preg_match_all('/.*?\[\d+,\[\'(\d+)\',\'(.*?)\',\'(.*?)\'\]/is', $response, $mats)) {
@@ -355,7 +342,7 @@ class crawler extends basis
         $data = array();
         $data['industry'] = intval($industry);
         $data['city'] = intval($city);
-        $data['degree'] = intval($degree);
+        $data['degree'] = $degree;
         $data['search_url'] = $search_url;
         $data['create_time'] = date('Y-m-d H:i:s');
 
@@ -365,9 +352,9 @@ class crawler extends basis
 
         if(in_array($data['industry'],array(10,40,420,130,140,150,430))) $sort++;
 
-        if($data['degree'] == 40) $sort += 3;
-        elseif($data['degree'] < 40) $sort += 2;
-        elseif($data['degree'] > 40) $sort++;
+        if($data['degree'] == '040-040') $sort += 3;
+        elseif($data['degree'] == '030-005') $sort += 2;
+        elseif($data['degree'] == '090-050') $sort++;
 
         $data['sort'] = $sort;
 
@@ -375,34 +362,75 @@ class crawler extends basis
     }
 
     public function crawler_stop(){
+        $w = date("w");
+        if(SATURDAY_AND_SUNDAY  && ($w == 0 || $w == 6)){
+            save_log('六日休息不抓');
+            exit;
+        }
         if(date('H') >= 12 && date('H') < 13){
             $time = mt_rand(3600,5400);
-            echo "noon sleep\n\r";
             save_log('中午休息，停止抓取');
             sleep($time);
         }
-    //    if(date('H') > 19) exit;
+       if(date('H') > END_TIME) {
+           save_log('一天抓取结束');
+           exit;
+       }
     }
 
-    function deal_conditions($rec_id,$res){
+    function deal_conditions($account,$rec_id,$res){
+        $res = $this->deal_account($account,$res);
+        if(empty($res)){
+            $GLOBALS['model']->update_conditions_status(self::CONDITION_INIT ,$rec_id);
+            return false;
+        }
         if(strpos($res,'没有找到符合条件的简历，建议您重新搜索') !== false){
-            $GLOBALS['model']->grab_conditions_null($rec_id);
+            $GLOBALS['model']->update_conditions_status(self::CONDITION_NULL ,$rec_id);
             return false;
         }
         return true;
     }
 
-    function deal_resume($resume_id,$res){
-        if(strpos($res,'参数非法，请稍后再试') !== false){
-            $GLOBALS['model']->update_resume_param($resume_id);
+    function deal_resume($account,$resume_id,$res){
+        $res = $this->deal_account($account,$res);
+        if(empty($res)){
+            $GLOBALS['model']->update_resume_status(self::RESUME_INIT,$resume_id);
             return false;
         }
 
-        if(strpos($res,'找简历_猎聘猎头网') === false && strpos($res,'个人信息') === false ){
-            $GLOBALS['model']->update_resume_body($resume_id);
+        if(strpos($res,'参数非法，请稍后再试') !== false){
+            $GLOBALS['model']->update_resume_status(self::RESUME_PARAM,$resume_id);
+            return false;
+        }
+
+        if(strpos($res,'个人信息') === false ){
+            $GLOBALS['model']->update_resume_status(self::RESUME_BODY,$resume_id);
             return false;
         }
         return true;
+    }
+
+
+    function deal_account($account,$res){
+        $account_id = $account['account_id'];
+        if(empty($res)){
+            //这个错可能不是账号的错，所以只是错误次数加1
+            $GLOBALS['model']->add_account_error($account_id,$account['error_num']);
+            return '';
+        }
+
+        if(strpos($res,'猎头顾问注册') !== false && strpos($res,'猎头顾问登录') !== false){
+            $GLOBALS['model']->update_account_status(self::ACCOUNT_LOGIN,$account_id);
+            send_email($account['account'].'需要重新登录' , '账号重新登录');
+            return '';
+        }
+
+        if(strpos($res,'猎聘网安全中心检测到您的账号') !== false && strpos($res,'账号登录异常') !== false){
+            $GLOBALS['model']->update_account_status(self::ACCOUNT_PHONE,$account_id);
+            send_email($account['account'].'账号登录异常，需要发送短信' , '账号需发短信');
+            return '';
+        }
+        return $res;
     }
 
 }

@@ -135,9 +135,9 @@ class DBHelper
 
     function ErrorMsg()
     {
-        header('HTTP/1.0 500 Server Internal Error');
-        print_r($this->error_message);
-      //  exit;
+     //   header('HTTP/1.0 500 Server Internal Error');
+     //   print_r($this->error_message);exit;
+        save_log(print_r($this->error_message , 1),'error');
     }
 
     function selectLimit($sql, $num, $start = 0)

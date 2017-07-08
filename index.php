@@ -7,6 +7,8 @@ include_once 'config/liepin.php';
 include_once 'liepin/crawler.php';
 include_once 'core/mysqli.php';
 include_once 'core/model.php';
+include_once('core/smtp.php');
+
 
 define('ROOT_PATH', str_replace('index.php', '', str_replace('\\', '/', __FILE__)));
 

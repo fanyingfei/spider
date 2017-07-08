@@ -14,5 +14,5 @@ $db = DBHelper::getIntance($database);
 $model = new model($table);
 
 save_log('数据抓取开始');
-$parse = new liepin_parse();
+$parse = new parse();
 $parse->start();

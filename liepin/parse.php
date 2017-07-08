@@ -50,10 +50,17 @@ class parse extends basis
     }
 
     public function start(){
+        $GLOBALS['model']->parse_start();
         while(true){
+            if(date('H') > END_TIME) exit;
+
             $row =  $GLOBALS['model']->get_parse_info();
+            if(empty($row)){
+                sleep(600);
+                continue;
+            }
             $this->lie_parser($row);
-            $GLOBALS['model']->grab_resume_parse_suc();
+            $GLOBALS['model']->resume_parse_suc($row['resume_id']);
         }
     }
 
@@ -67,7 +74,7 @@ class parse extends basis
 
     public function lie_parser($row){
         $this->_resume_id = $row['resume_id'];
-        $body = file_get_contents(ROOT_PATH.$row['path']);
+        $body = $row['content'];
 
         if(empty($body)){
             //标记为磁盘未找到
@@ -89,6 +96,7 @@ class parse extends basis
         $GLOBALS['model']->save_project($this->_resume_id,$this->_parse_result['project']);
         $GLOBALS['model']->save_workepx($this->_resume_id,$this->_parse_result['work']);
         $GLOBALS['model']->save_education($this->_resume_id,$this->_parse_result['education']);
+        $GLOBALS['model']->update_resume_parse($this->_resume_id,$this->_parse_result['basic']);
     }
 
 
@@ -105,7 +113,7 @@ class parse extends basis
     {
         try{
             $evaluation = $this->_crawler->find('.resume-comments table')->html();
-            $this->_parse_result['basic_extra']['evaluation'] = trim(strip_tags(trim($this->_replace($evaluation))));
+            $this->_parse_result['basic']['evaluation'] = htmlspecialchars(trim(strip_tags($this->_replace($evaluation))),ENT_QUOTES);
         }catch(Exception $e){
             return false;
         }
@@ -118,7 +126,7 @@ class parse extends basis
     {
         try{
             $other_info = $this->_crawler->find('.resume-others table')->html();
-            $this->_parse_result['basic_extra']['other_info'] =trim(strip_tags(trim($this->_replace($other_info))))."\n\n";
+            $this->_parse_result['basic']['other_info'] =htmlspecialchars(trim(strip_tags(trim($this->_replace($other_info)))),ENT_QUOTES);
 
         }catch(Exception $e){
             return false;
@@ -136,7 +144,7 @@ class parse extends basis
             $this->_parse_result['basic']['marital'] = $marital;
 
             $work_status = $this->_crawler->find('p.text-center')->text();
-            $this->_parse_result['basic']['current_status'] = trim($this->_replace($work_status));
+            $this->_parse_result['basic']['current_status'] = htmlspecialchars(trim($this->_replace($work_status)),ENT_QUOTES);
 
             if(preg_match('/<strong>目前职业概况<\/strong>.*?目前薪资：(.*?)个月.*?<table>/is',$this->_crawler->find('.resume-basic')->html(),$mat)){
                 $this->_parse_result['basic']['cur_salary'] = $mat[1].'个月';
@@ -170,7 +178,7 @@ class parse extends basis
             for($i=0;$i<$work_title_count;++$i) {
                 $this->_parse_result['work'][$i] = $this->_parse_work;
                 if(preg_match('/(.*?)<span>.*?$/is',$work_title->eq($i)->find('.compony')->html(),$mat)){
-                    $this->_parse_result['work'][$i]['corporation_name'] = htmlspecialchars(strip_tags($mat[1]));
+                    $this->_parse_result['work'][$i]['corporation_name'] = htmlspecialchars(strip_tags($mat[1]),ENT_QUOTES);
                 }
 
                 $com_info = $work_info->eq($i)->find("table tr")->eq(0)->find("td")->text();
@@ -179,7 +187,7 @@ class parse extends basis
                     foreach($com_info as $k=>$v){
                         if (strstr($v, '·')) $this->_parse_result['work'][$i]['corporation_type'] = trim($v);
                         elseif (strstr($v, '人')) $this->_parse_result['work'][$i]['scale'] = trim($v);
-                        else $this->_parse_result['work'][$i]['industry_name'] = trim($v);
+                        else $this->_parse_result['work'][$i]['industry_name'] = htmlspecialchars(trim($v),ENT_QUOTES);
                     }
                 }
 
@@ -191,7 +199,7 @@ class parse extends basis
 
                     if(preg_match('/.*?<\/strong>.*?(\d+)元.*?$/uis',$res,$mat)) $this->_parse_result['work'][$i]['basic_salary'] = $mat[1];
 
-                    $this->_parse_result['work'][$i]['position_name'] =$tr->eq(0)->find('.job-list-title strong')->text();
+                    $this->_parse_result['work'][$i]['position_name'] =htmlspecialchars($tr->eq(0)->find('.job-list-title strong')->text(),ENT_QUOTES);
 
                     $work_time = explode('-',$work_title->eq($i)->find('span.work-time')->text());
                     $this->_parse_result['work'][$i]['start_time'] = empty($work_time[0]) ? '' : $work_time[0];
@@ -218,7 +226,7 @@ class parse extends basis
                         $name = $tr->eq($j)->find('th')->text();
                         $work_detail .= trim(strip_tags($this->_replace($tr->eq($j)->find('td')->html())));
                     }
-                    $this->_parse_result['work'][$i]['responsibilities'] = htmlspecialchars(trim($work_detail));
+                    $this->_parse_result['work'][$i]['responsibilities'] = htmlspecialchars(trim($work_detail),ENT_QUOTES);
                     $this->_parse_result['work'][$i]['resume_id'] = $this->_resume_id;
                 }
             }
@@ -251,11 +259,11 @@ class parse extends basis
 
                 for($j=1;$j<$count2;++$j) {
                     $name = $tr->eq($j)->find('th')->text();
-                    if($name == "项目职务：") $this->_parse_result['project'][$i]['position_name'] = htmlspecialchars(trim($tr->eq($j)->find('td')->text()));
-                    if($name == "所在公司：") $this->_parse_result['project'][$i]['corporation_name'] = htmlspecialchars(trim($tr->eq($j)->find('td')->text()));
-                    if($name == "项目简介：") $this->_parse_result['project'][$i]['position_describe'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))));
-                    if($name == "项目职责：") $this->_parse_result['project'][$i]['responsibility'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))));
-                    if($name == "项目业绩：") $this->_parse_result['project'][$i]['achivement'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))));
+                    if($name == "项目职务：") $this->_parse_result['project'][$i]['position_name'] = htmlspecialchars(trim($tr->eq($j)->find('td')->text()),ENT_QUOTES);
+                    if($name == "所在公司：") $this->_parse_result['project'][$i]['corporation_name'] = htmlspecialchars(trim($tr->eq($j)->find('td')->text()),ENT_QUOTES);
+                    if($name == "项目简介：") $this->_parse_result['project'][$i]['position_describe'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))),ENT_QUOTES);
+                    if($name == "项目职责：") $this->_parse_result['project'][$i]['responsibility'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))),ENT_QUOTES);
+                    if($name == "项目业绩：") $this->_parse_result['project'][$i]['achivement'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))),ENT_QUOTES);
                 }
                 $this->_parse_result['project'][$i]['resume_id'] = $this->_resume_id;
             }
@@ -304,7 +312,7 @@ class parse extends basis
     {
         //英语：读写能力良好 | 听说能力熟练
         try{
-            $this->_parse_result['language'] = trim($this->_crawler->find('.resume-language table td')->text());
+            $this->_parse_result['basic']['language'] = htmlspecialchars(trim($this->_crawler->find('.resume-language table td')->text()),ENT_QUOTES);
         }catch (Exception $e) {
             return false;
         }

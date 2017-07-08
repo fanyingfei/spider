@@ -1,8 +1,10 @@
 <?php
 
     function save_log($msg,$status = 'info'){
-        $file = ROOT_PATH .'log/'.WEB_TYPE . '-'.date('Y-m-d').'.log';
-        file_put_contents($file,$status.'------'.$msg."\n\r",FILE_APPEND);
+        $dir = ROOT_PATH .'logs/'.date('Y').'/'.date('m');
+        if (!file_exists($dir)) mkdir($dir, 0777, true);
+        $file = $dir.'/'.WEB_TYPE . '-'.date('Y-m-d').'.log';
+        file_put_contents($file,'['.$status.']------'.date('H:i:s').'------'.$msg."\n",FILE_APPEND);
     }
 
     function grab_curl($account,$url,$post=''){
@@ -33,30 +35,22 @@
             $reponse = '';
         }
         curl_close($ch);//关闭cURL资源，并且释放系统资源
-
-        if(!deal_account($account,$reponse)){
-            $reponse = '';
-        }
         return $reponse;
     }
 
 
-    function deal_account($account,$res){
-        $account_id = $account['account_id'];
-        if(empty($res)){
-            //这个错可能不是账号的错，所以只是错误次数加1
-            $GLOBALS['model']->add_account_error($account_id,$account['error_num']);
-            return false;
-        }
-
-        if(strpos($res,'猎头顾问注册') !== false && strpos($res,'猎头顾问登录') !== false){
-            $GLOBALS['model']->set_account_login($account_id);
-            return false;
-        }
-
-        if(strpos($res,'猎聘网安全中心检测到您的账号') !== false && strpos($res,'账号登录异常') !== false){
-            $GLOBALS['model']->set_account_phone($account_id);
-            return false;
-        }
-        return true;
+    function send_email($msg='',$title=''){
+        $smtpserver = "smtp.163.com";//SMTP服务器
+        $smtpserverport =25;//SMTP服务器端口
+        $smtpusermail = "15821911446@163.com";//SMTP服务器的用户邮箱
+        $smtpemailto = EMAIL_ADDRESS;//发送给谁
+        $smtpuser = "15821911446";//SMTP服务器的用户帐号
+        $smtppass = "qweasd12345";//SMTP服务器的用户密码
+        $mailtitle = $title;//邮件主题
+        $mailcontent = $msg;//邮件内容
+        $mailtype = "HTML";//邮件格式（HTML/TXT）,TXT为文本邮件
+        //************************ 配置信息 ****************************
+        $smtp = new smtp($smtpserver,$smtpserverport,true,$smtpuser,$smtppass);//这里面的一个true是表示使用身份验证,否则不使用身份验证.
+        $smtp->debug = true;//是否显示发送的调试信息
+        $smtp->sendmail($smtpemailto, $smtpusermail, $mailtitle, $mailcontent, $mailtype);
     }
