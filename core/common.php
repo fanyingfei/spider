@@ -54,3 +54,7 @@
         $smtp->debug = false;//是否显示发送的调试信息
         $smtp->sendmail($smtpemailto, $smtpusermail, $mailtitle, $mailcontent, $mailtype);
     }
+
+    function get_db_config(){
+        return $GLOBALS['database'];
+    }

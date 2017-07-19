@@ -4,6 +4,7 @@ class DBHelper
 {
     private $link;
     private $error_message;
+    private static $_pid;
     private static $_instance ;
 
     private function __construct($config)
@@ -27,8 +28,9 @@ class DBHelper
     }
 
     public static function getIntance($config){
-        if (!(self::$_instance instanceof self)) {
+        if (!(self::$_instance instanceof self) || self::$_pid != getmypid()) {
             self::$_instance = new self($config);
+            self::$_pid = getmypid();
         }
         return self::$_instance;
     }

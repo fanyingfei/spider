@@ -23,20 +23,24 @@ class crawler extends basis
             if (!function_exists("pcntl_fork")) {
                 save_log('不支持fork子进程' , 'error');
                 $this->loop_grab();
-            }else{
-                $account_num = $GLOBALS['model']->get_account_count();
-                $process_count = ceil($account_num/10);
-                pcntl_signal(SIGCHLD, SIG_IGN); //如果父进程不关心子进程什么时候结束,子进程结束后，内核会回收
-                for($i = 0; $i<$process_count; $i++){
-                    $pid = pcntl_fork();    //创建子进程 父进程和子进程都会执行下面代码
-                    if ($pid == -1) {
-                        save_log('进程创建失败','error');//错误处理：创建子进程失败时返回-1.
-                    } elseif ($pid) {
-                        save_log('子进程fork成功 , pid : '.$pid,'info'); //父进程会得到子进程号，所以这里是父进程执行的逻辑
-                    } elseif($pid == 0){
-                        save_log('子进程开始工作 ' ,'info');
-                        $this->loop_grab(); //子进程得到的$pid为0, 所以这里是子进程执行的逻辑。
-                    }
+                return false;
+            }
+            $account_num = $GLOBALS['model']->get_account_count();
+            $process_count = ceil($account_num/10);
+            pcntl_signal(SIGCHLD, SIG_IGN); //如果父进程不关心子进程什么时候结束,子进程结束后，内核会回收
+            for($i = 0; $i<$process_count; $i++){
+                $pid = pcntl_fork();    //创建子进程 父进程和子进程都会执行下面代码
+                if ($pid == -1) {
+                    save_log('进程创建失败','error');//错误处理：创建子进程失败时返回-1.
+                } elseif ($pid) {
+                    save_log('子进程fork成功 , pid : '.$pid,'info'); //父进程会得到子进程号，所以这里是父进程执行的逻辑
+                } elseif($pid == 0){
+                    save_log('子进程开始工作 ' ,'info');
+                    global $db;
+                    $database = get_db_config();
+                    $db = DBHelper::getIntance($database);
+                    $account = $GLOBALS['model']->get_account();
+                    $this->loop_grab(); //子进程得到的$pid为0, 所以这里是子进程执行的逻辑。
                 }
             }
         }else if(strpos(PHP_OS ,"WIN") !==false){
