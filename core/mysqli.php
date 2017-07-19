@@ -10,12 +10,14 @@ class DBHelper
     private function __construct($config)
     {
         if(empty($config['host']) || empty($config['port'])){
-            $this->ErrorMsg("Config cant't empty!");
+            save_mysql_log("Config cant't empty!",'info');
+            exit;
         }
 
         $this->link = mysqli_connect($config['host'],$config['user'],$config['pass'],$config['dbname'],$config['port']);
         if(!$this->link){
-            $this->ErrorMsg("Can't Connect MySQL Server!");
+            save_mysql_log("Can't Connect MySQL Server!",'info');
+            exit;
         }
 
         $this->set_mysql_charset($config['charset']);
@@ -57,7 +59,7 @@ class DBHelper
 
     function query($sql, $type = '')
     {
-
+        save_mysql_log($sql,'info');
         if (!($query = mysqli_query($this->link, $sql)) && $type != 'SILENT') {
             $message = array(
                 'message'=>'MySQL Query Error',
@@ -140,7 +142,7 @@ class DBHelper
     {
      //   header('HTTP/1.0 500 Server Internal Error');
      //   print_r($this->error_message);exit;
-        save_log(print_r($this->error_message , 1),'error');
+        save_mysql_log(print_r($this->error_message , 1),'error');
     }
 
     function selectLimit($sql, $num, $start = 0)

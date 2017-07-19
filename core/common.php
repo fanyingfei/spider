@@ -7,6 +7,13 @@
         file_put_contents($file,'['.$status.']------'.date('H:i:s').'------'.$msg."\n",FILE_APPEND);
     }
 
+    function save_mysql_log($msg,$status = 'info'){
+        $dir = ROOT_PATH .'logs/'.date('Y').'/'.date('m');
+        if (!file_exists($dir)) mkdir($dir, 0777, true);
+        $file = $dir.'/'.WEB_TYPE . '-'.date('Y-m-d').'-sql.log';
+        file_put_contents($file,'['.$status.']------'.date('H:i:s').'------'.$msg."\n",FILE_APPEND);
+    }
+
     function grab_curl($account,$url,$post=''){
         $header = array(
             'Connection: keep-alive',
