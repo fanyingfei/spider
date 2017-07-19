@@ -73,6 +73,7 @@ class parse extends basis
     }
 
     public function lie_parser($row){
+        $this->_parse_result = array();
         $this->_resume_id = $row['resume_id'];
         $body = $row['content'];
 
@@ -93,10 +94,10 @@ class parse extends basis
         $this->lie_parse_remark();
         $this->lie_resume_others();
 
-        $GLOBALS['model']->save_project($this->_resume_id,$this->_parse_result['project']);
-        $GLOBALS['model']->save_workepx($this->_resume_id,$this->_parse_result['work']);
-        $GLOBALS['model']->save_education($this->_resume_id,$this->_parse_result['education']);
-        $GLOBALS['model']->update_resume_parse($this->_resume_id,$this->_parse_result['basic']);
+        if(!empty($this->_parse_result['project'])) $GLOBALS['model']->save_project($this->_resume_id,$this->_parse_result['project']);
+        if(!empty($this->_parse_result['work'])) $GLOBALS['model']->save_workepx($this->_resume_id,$this->_parse_result['work']);
+        if(!empty($this->_parse_result['education'])) $GLOBALS['model']->save_education($this->_resume_id,$this->_parse_result['education']);
+        if(!empty($this->_parse_result['basic'])) $GLOBALS['model']->update_resume_parse($this->_resume_id,$this->_parse_result['basic']);
     }
 
 
