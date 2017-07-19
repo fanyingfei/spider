@@ -12,12 +12,12 @@ class DBHelper
             $this->ErrorMsg("Config cant't empty!");
         }
 
-        $this->link=mysqli_connect($config['host'].':'.$config['port'],$config['user'],$config['pass']);
+        $this->link = mysqli_connect($config['host'],$config['user'],$config['pass'],$config['dbname'],$config['port']);
         if(!$this->link){
             $this->ErrorMsg("Can't Connect MySQL Server!");
         }
 
-        $this->select_database($config['dbname']);
+        $this->set_mysql_charset($config['charset']);
         return $this->link;
     }
 
