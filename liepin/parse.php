@@ -73,6 +73,7 @@ class parse extends basis
     }
 
     public function lie_parser($row){
+        $this->_parse_result = array();
         $this->_resume_id = $row['resume_id'];
         $body = $row['content'];
 
