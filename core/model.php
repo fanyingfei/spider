@@ -38,6 +38,11 @@ class model extends basis{
         return $GLOBALS['db']->getOne($sql);
     }
 
+    function get_account_count(){
+        $sql = "select count(*) as total_num from ".$this->account_table;
+        return $GLOBALS['db']->getOne($sql);
+    }
+
     function update_conditions_total_page($total_page,$rec_id){
         return $GLOBALS['db']->update($this->condition_table, array('total_page'=>$total_page) ,"rec_id=".$rec_id);
     }
@@ -60,8 +65,8 @@ class model extends basis{
         return $GLOBALS['db']->insert($this->condition_table,$data);
     }
 
-    function get_resume_by_sign($sign){
-        $sql = "select resume_id,login_time from resume where sign = '".$sign."'";
+    function get_resume_by_user_sn($user_sn){
+        $sql = "select resume_id,login_time from resume where user_sn = '".$user_sn."'";
         $resume_info = $GLOBALS['db']->getRow($sql);
         return $resume_info;
     }

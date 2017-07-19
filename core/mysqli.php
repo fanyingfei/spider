@@ -11,12 +11,11 @@ class DBHelper
         if(empty($config['host']) || empty($config['port'])){
             $this->ErrorMsg("Config cant't empty!");
         }
-        $this->link=mysqli_connect($config['host'].':'.$config['port'],$config['user'],$config['pass']);
+        $this->link=mysqli_connect($config['host'],$config['user'],$config['pass'],$config['dbname'],$config['port']);
         if(!$this->link){
             $this->ErrorMsg("Can't Connect MySQL Server!");
         }
         $this->set_mysql_charset($config['charset']);
-        $this->select_database($config['dbname']);
         return $this->link;
     }
 
@@ -138,6 +137,7 @@ class DBHelper
      //   header('HTTP/1.0 500 Server Internal Error');
      //   print_r($this->error_message);exit;
         save_log(print_r($this->error_message , 1),'error');
+        exit;
     }
 
     function selectLimit($sql, $num, $start = 0)

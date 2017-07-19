@@ -261,10 +261,11 @@ class parse extends basis
                     $name = $tr->eq($j)->find('th')->text();
                     if($name == "项目职务：") $this->_parse_result['project'][$i]['position_name'] = htmlspecialchars(trim($tr->eq($j)->find('td')->text()),ENT_QUOTES);
                     if($name == "所在公司：") $this->_parse_result['project'][$i]['corporation_name'] = htmlspecialchars(trim($tr->eq($j)->find('td')->text()),ENT_QUOTES);
-                    if($name == "项目简介：") $this->_parse_result['project'][$i]['position_describe'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))),ENT_QUOTES);
-                    if($name == "项目职责：") $this->_parse_result['project'][$i]['responsibility'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))),ENT_QUOTES);
-                    if($name == "项目业绩：") $this->_parse_result['project'][$i]['achivement'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->filter('td')->html()))),ENT_QUOTES);
+                    if($name == "项目简介：") $this->_parse_result['project'][$i]['position_describe'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->find('td')->html()))),ENT_QUOTES);
+                    if($name == "项目职责：") $this->_parse_result['project'][$i]['responsibility'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->find('td')->html()))),ENT_QUOTES);
+                    if($name == "项目业绩：") $this->_parse_result['project'][$i]['achivement'] = htmlspecialchars(trim(strip_tags($this->_replace($tr->eq($j)->find('td')->html()))),ENT_QUOTES);
                 }
+
                 $this->_parse_result['project'][$i]['resume_id'] = $this->_resume_id;
             }
         }catch (Exception $e) { }
