@@ -37,8 +37,7 @@ class crawler extends basis
                 } elseif($pid == 0){
                     save_log('子进程开始工作 ' ,'info');
                     global $db;
-                    $database = get_db_config();
-                    $db = DBHelper::getIntance($database);
+                    $db = DBHelper::getIntance(get_db_config());
                     $this->loop_grab(); //子进程得到的$pid为0, 所以这里是子进程执行的逻辑。
                 }
             }
