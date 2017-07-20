@@ -9,6 +9,7 @@ include_once 'core/mysqli.php';
 include_once 'core/model.php';
 include_once('core/smtp.php');
 
+//sleep(rand(0,1200));
 
 define('ROOT_PATH', str_replace('index.php', '', str_replace('\\', '/', __FILE__)));
 

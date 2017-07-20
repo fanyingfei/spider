@@ -18,6 +18,41 @@ class crawler extends basis
 
         $GLOBALS['model']->init_start();
 
+        $os_name = PHP_OS ;
+        if(strpos(PHP_OS ,"Linux") !== false){
+            if (!function_exists("pcntl_fork")) {
+                save_log('不支持fork子进程' , 'error');
+                $this->loop_grab();
+                return false;
+            }
+            $account_num = $GLOBALS['model']->get_account_count();
+            $process_count = ceil($account_num/10);
+            pcntl_signal(SIGCHLD, SIG_IGN); //如果父进程不关心子进程什么时候结束,子进程结束后，内核会回收
+            for($i = 0; $i<$process_count; $i++){
+                $pid = pcntl_fork();    //创建子进程 父进程和子进程都会执行下面代码
+                if ($pid == -1) {
+                    save_log('进程创建失败','error');//错误处理：创建子进程失败时返回-1.
+                } elseif ($pid) {
+                    save_log('子进程fork成功 , pid : '.$pid,'info'); //父进程会得到子进程号，所以这里是父进程执行的逻辑
+                } elseif($pid == 0){
+                    save_log('子进程开始工作 ' ,'info');
+                    global $db;
+                    $database = get_db_config();
+                    $db = DBHelper::getIntance($database);
+                    $account = $GLOBALS['model']->get_account();
+                    $this->loop_grab(); //子进程得到的$pid为0, 所以这里是子进程执行的逻辑。
+                }
+            }
+        }else if(strpos(PHP_OS ,"WIN") !==false){
+            $this->loop_grab();
+        }else{
+            save_log('这是什么系统：'.PHP_OS , 'error');
+            exit;
+        }
+
+    }
+
+    function loop_grab(){
         while(true){
             $this->crawler_stop();
 
@@ -158,6 +193,7 @@ class crawler extends basis
         foreach($resume_list as $tr){
             $one = array();
             $one['user_name'] = trim(pq($tr)->find('td.td-name a strong')->text());
+            $one['user_sn'] = trim(pq($tr)->find('td.text-right .checkbox')->attr('data-userid'));
             $one['sign'] = trim(pq($tr)->find('td.td-name a')->attr('data-id'));
             $one['sex'] = trim(pq($tr)->find('td')->eq(2)->text());
             $age = trim(pq($tr)->find('td')->eq(3)->text());
@@ -170,7 +206,7 @@ class crawler extends basis
             $one['login_time'] = trim(pq($tr)->find('td')->eq(9)->text());
             $one['account'] = $account_name;
 
-            $resume_info = $GLOBALS['model']->get_resume_by_sign($one['sign']);
+            $resume_info = $GLOBALS['model']->get_resume_by_user_sn($one['user_sn']);
             if(empty($resume_info)){
                 $one['create_time'] = $one['update_time'] = date('Y-m-d H:i:s');
                 $resume_id = $GLOBALS['model']->save_resume_one($one);
@@ -363,16 +399,18 @@ class crawler extends basis
 
     public function crawler_stop(){
         $w = date("w");
-        if(SATURDAY_AND_SUNDAY  && ($w == 0 || $w == 6)){
-            save_log('六日休息不抓');
-            exit;
-        }
+        if($w == 0 || $w == 6){
+			if(SATURDAY_AND_SUNDAY && date('H') >= END_TIME - 2) {
+			   save_log('一天抓取结束');
+			   exit;
+			}
+       }
         if(date('H') >= 12 && date('H') < 13){
             $time = mt_rand(3600,5400);
             save_log('中午休息，停止抓取');
             sleep($time);
         }
-       if(date('H') > END_TIME) {
+       if(date('H') >= END_TIME) {
            save_log('一天抓取结束');
            exit;
        }
@@ -425,7 +463,13 @@ class crawler extends basis
             return '';
         }
 
-        if(strpos($res,'猎聘网安全中心检测到您的账号') !== false && strpos($res,'账号登录异常') !== false){
+        if(strpos($res,'检测到您账号的操作行为过于频繁') !== false){
+            $GLOBALS['model']->update_account_status(self::ACCOUNT_LOGIN,$account_id);
+            send_email($account['account'].'需要重新登录' , '账号重新登录');
+            return '';
+        }
+
+        if(strpos($res,'账号登录异常') !== false){
             $GLOBALS['model']->update_account_status(self::ACCOUNT_PHONE,$account_id);
             send_email($account['account'].'账号登录异常，需要发送短信' , '账号需发短信');
             return '';

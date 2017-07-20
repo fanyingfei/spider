@@ -7,6 +7,13 @@
         file_put_contents($file,'['.$status.']------'.date('H:i:s').'------'.$msg."\n",FILE_APPEND);
     }
 
+    function save_mysql_log($msg,$status = 'info'){
+        $dir = ROOT_PATH .'logs/'.date('Y').'/'.date('m');
+        if (!file_exists($dir)) mkdir($dir, 0777, true);
+        $file = $dir.'/'.WEB_TYPE . '-'.date('Y-m-d').'-sql.log';
+        file_put_contents($file,'['.$status.']------'.date('H:i:s').'------'.$msg."\n",FILE_APPEND);
+    }
+
     function grab_curl($account,$url,$post=''){
         $header = array(
             'Connection: keep-alive',
@@ -51,6 +58,10 @@
         $mailtype = "HTML";//邮件格式（HTML/TXT）,TXT为文本邮件
         //************************ 配置信息 ****************************
         $smtp = new smtp($smtpserver,$smtpserverport,true,$smtpuser,$smtppass);//这里面的一个true是表示使用身份验证,否则不使用身份验证.
-        $smtp->debug = true;//是否显示发送的调试信息
+        $smtp->debug = false;//是否显示发送的调试信息
         $smtp->sendmail($smtpemailto, $smtpusermail, $mailtitle, $mailcontent, $mailtype);
+    }
+
+    function get_db_config(){
+        return $GLOBALS['database'];
     }
