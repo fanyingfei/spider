@@ -59,7 +59,6 @@ class DBHelper
 
     function query($sql, $type = '')
     {
-        save_mysql_log($sql,'info');
         if (!($query = mysqli_query($this->link, $sql)) && $type != 'SILENT') {
             $message = array(
                 'message'=>'MySQL Query Error',

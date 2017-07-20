@@ -39,7 +39,6 @@ class crawler extends basis
                     global $db;
                     $database = get_db_config();
                     $db = DBHelper::getIntance($database);
-                    $account = $GLOBALS['model']->get_account();
                     $this->loop_grab(); //子进程得到的$pid为0, 所以这里是子进程执行的逻辑。
                 }
             }
