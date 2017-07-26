@@ -60,7 +60,7 @@ class parse extends basis
                 continue;
             }
             $this->lie_parser($row);
-            $GLOBALS['model']->resume_parse_suc($row['resume_id']);
+            $GLOBALS['model']->resume_parse_suc($row);
         }
     }
 

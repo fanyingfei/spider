@@ -26,7 +26,8 @@ class crawler extends basis
                 return false;
             }
             $account_num = $GLOBALS['model']->get_account_count();
-            $process_count = ceil($account_num/10);
+            $account_time = ceil(ACCOUNT_SLEEP_TIME / 5); //一个账号按5s来算处理完一次请求，休息时间除以5代表一个进程能处理多少账号
+            $process_count = ceil($account_num/$account_time);
             pcntl_signal(SIGCHLD, SIG_IGN); //如果父进程不关心子进程什么时候结束,子进程结束后，内核会回收
             for($i = 0; $i<$process_count; $i++){
                 $pid = pcntl_fork();    //创建子进程 父进程和子进程都会执行下面代码
@@ -154,6 +155,10 @@ class crawler extends basis
         }else{
             save_log('搜索列表抓取失败，列表ID : '.$row['rec_id'] , 'error');
             $GLOBALS['model']->update_conditions_status(self::CONDITION_ERROR,$row['rec_id']);
+
+            $dir = ROOT_PATH .'down/conditions_'.$row['rec_id'].'.html';
+            file_put_contents($dir,$res);
+
             return true;
         }
 
@@ -424,6 +429,11 @@ class crawler extends basis
             $GLOBALS['model']->update_conditions_status(self::CONDITION_NULL ,$rec_id);
             return false;
         }
+
+        if(strpos($res,'当前搜索条件') === false){
+            $GLOBALS['model']->update_conditions_status(self::CONDITION_NULL ,$rec_id);
+            return false;
+        }
         return true;
     }
 
@@ -455,7 +465,7 @@ class crawler extends basis
             return '';
         }
 
-        if(strpos($res,'猎头顾问注册') !== false && strpos($res,'猎头顾问登录') !== false){
+        if(strpos($res,'请输入认证的手机号') !== false && strpos($res,'请输入登录密码') !== false){
             $GLOBALS['model']->update_account_status(self::ACCOUNT_LOGIN,$account_id);
             send_email($account['account'].'需要重新登录' , '账号重新登录');
             return '';
@@ -472,6 +482,7 @@ class crawler extends basis
             send_email($account['account'].'账号登录异常，需要发送短信' , '账号需发短信');
             return '';
         }
+
         return $res;
     }
 

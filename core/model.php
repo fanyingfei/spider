@@ -39,7 +39,7 @@ class model extends basis{
     }
 
     function get_account_count(){
-        $sql = "select count(*) as total_num from ".$this->account_table;
+        $sql = "select count(*) as total_num from ".$this->account_table.' where error_num < 50';
         return $GLOBALS['db']->getOne($sql);
     }
 
@@ -48,16 +48,16 @@ class model extends basis{
     }
 
     function grab_conditions_cur_page($cur_page,$rec_id){
-        $data = array('status'=>self::CONDITION_INIT,'cur_page'=>$cur_page + 1);
+        $data = array('status'=>self::CONDITION_INIT,'cur_page'=>$cur_page + 1,'update_time'=>date('Y-m-d H:i:s'));
         return $GLOBALS['db']->update($this->condition_table, $data ,"rec_id=".$rec_id);
     }
 
     function update_conditions_status($status,$rec_id){
-        return $GLOBALS['db']->update($this->condition_table, array('status'=>$status) ,"rec_id=".$rec_id);
+        return $GLOBALS['db']->update($this->condition_table, array('status'=>$status,'update_time'=>date('Y-m-d H:i:s')) ,"rec_id=".$rec_id);
     }
 
     function grab_conditions_suc($total_page,$rec_id){
-        $data = array('status'=>self::CONDITION_SUC,'cur_page'=>$total_page,'is_full'=>self::CONDITION_IS_FULL);
+        $data = array('status'=>self::CONDITION_SUC,'cur_page'=>$total_page,'is_full'=>self::CONDITION_IS_FULL,'update_time'=>date('Y-m-d H:i:s'));
         return $GLOBALS['db']->update($this->condition_table,$data ,"rec_id=".$rec_id);
     }
 
@@ -75,7 +75,7 @@ class model extends basis{
         $data['status'] = self::RESUME_SUC ;
         $data['crawler_time'] = time();
         $content = base64_encode($html);
-        if($content != $row['content']){
+        if($content != $row['content'] && md5($content) != $row['content']){
             $data['content'] = $content;
             $data['parse_status'] = self::RESUME_INIT ;
             $msg = '内容改变，改状态并需要重新解析';
@@ -87,8 +87,10 @@ class model extends basis{
         return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$row['resume_id']);
     }
 
-    function resume_parse_suc($resume_id){
-        $data = array('parse_status'=>self::RESUME_SUC ,'parse_time' => time());
+    function resume_parse_suc($row){
+        $resume_id = $row['resume_id'];
+        $content = md5($row['content']);
+        $data = array('parse_status'=>self::RESUME_SUC ,'parse_time' => time(),'content'=>$content);
         return $GLOBALS['db']->update($this->resume_table,$data,'resume_id = '.$resume_id);
     }
 
@@ -172,13 +174,15 @@ class model extends basis{
 
     function get_parse_info(){
         while(true){
-            $sql = "select * from ".$this->resume_table." where status = ".self::RESUME_SUC." and parse_status = ".self::RESUME_INIT ;
+            $sql = "select resume_id , content from ".$this->resume_table." where status = ".self::RESUME_SUC." and parse_status = ".self::RESUME_INIT ;
             $row = $GLOBALS['db']->getRow($sql);
 
             if(empty($row)) return '';
             $res = $GLOBALS['db']->update($this->resume_table,array('parse_status'=>self::RESUME_RUN),"resume_id=".$row['resume_id'].' and parse_status = '.self::RESUME_INIT);
-            $row['content'] = base64_decode($row['content']);
-            if($res) return $row;
+            if($res && strlen($row['content']) > 100){
+                $row['content'] = base64_decode($row['content']);
+                return $row;
+            }
         }
     }
 
