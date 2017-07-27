@@ -292,7 +292,7 @@ class DBHelper
             if(!isset($v)){
                 return false;
             }
-            $v = htmlspecialchars($v);
+            $v = htmlspecialchars($v,ENT_QUOTES );
             //$key的值是每一个字段s一个字段所对应的值
             $key_str.=$key.',';
             $v_str.="'$v',";
@@ -310,7 +310,7 @@ class DBHelper
         //遍历数组，得到每一个字段和字段的值
         $str='';
         foreach($data as $key=>$v){
-            $v = htmlspecialchars($v);
+            $v = htmlspecialchars($v,ENT_QUOTES );
             $str.="$key='$v',";
         }
         $str=rtrim($str,',');

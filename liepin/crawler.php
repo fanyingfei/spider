@@ -204,8 +204,8 @@ class crawler extends basis
             $one['agree'] = trim(pq($tr)->find('td')->eq(4)->attr('title'));
             $one['work_year'] = trim(pq($tr)->find('td')->eq(5)->text());
             $one['work_place'] = trim(pq($tr)->find('td')->eq(6)->attr('title'));
-            $one['cur_position'] = htmlspecialchars(trim(pq($tr)->find('td')->eq(7)->attr('title')),ENT_QUOTES);
-            $one['cur_company'] = htmlspecialchars(trim(pq($tr)->find('td')->eq(8)->attr('title')),ENT_QUOTES);
+            $one['cur_position'] = trim(pq($tr)->find('td')->eq(7)->attr('title'));
+            $one['cur_company'] = trim(pq($tr)->find('td')->eq(8)->attr('title'));
             $one['login_time'] = trim(pq($tr)->find('td')->eq(9)->text());
             $one['account'] = $account_name;
 

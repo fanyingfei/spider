@@ -13,6 +13,6 @@ define('ROOT_PATH', str_replace('parse.php', '', str_replace('\\', '/', __FILE__
 $db = DBHelper::getIntance($database);
 $model = new model($table);
 
-save_log('数据抓取开始');
+save_log('数据解析开始');
 $parse = new parse();
 $parse->start();
