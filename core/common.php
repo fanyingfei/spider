@@ -49,7 +49,7 @@
     function send_email($msg='',$title=''){
         $smtpserver = "smtp.163.com";//SMTP服务器
         $smtpserverport =25;//SMTP服务器端口
-        $smtpusermail = "15821911446@163.com";//SMTP服务器的用户邮箱
+        $smtpusermail = WEB_TYPE."账号登录问题";//SMTP服务器的用户邮箱
         $smtpemailto = EMAIL_ADDRESS;//发送给谁
         $smtpuser = "15821911446";//SMTP服务器的用户帐号
         $smtppass = "qweasd12345";//SMTP服务器的用户密码
