@@ -477,9 +477,21 @@ class crawler extends basis
             return '';
         }
 
+        if(strpos($res,'当前查看简历的速度过快') !== false){
+            $GLOBALS['model']->update_account_status(self::ACCOUNT_LOGIN,$account_id);
+            send_email($account['account'].'查看简历速度过快' , '账号需要休息');
+            return '';
+        }
+
         if(strpos($res,'账号登录异常') !== false){
             $GLOBALS['model']->update_account_status(self::ACCOUNT_PHONE,$account_id);
             send_email($account['account'].'账号登录异常，需要发送短信' , '账号需发短信');
+            return '';
+        }
+
+        if(strpos($res,'id="page-error"') !== false && strpos($res,'class="resError"') !== false){
+            $GLOBALS['model']->update_account_status(self::ACCOUNT_ERROR,$account_id);
+            send_email($account['account'].'发生未知错误' , '账号发生未知错误');
             return '';
         }
 
