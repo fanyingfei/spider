@@ -13,8 +13,8 @@ if(empty($_POST['account'])){
 }
 $account = $db->getRow($sql);
 
-if(!empty($_POST['account']) && !empty($_POST['cookie'])){
-    if(strpos($_POST['cookie'],'lt_auth=') === false){
+if(!empty($_POST['account'])){
+    if(strpos($_POST['cookie'],'lt_auth=') === false && empty($_POST['is_delete'])){
         echo 1;exit;
     }
     $data['cookie'] = $_POST['cookie'];
