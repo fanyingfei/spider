@@ -21,7 +21,7 @@ class model extends basis{
     function init_start(){
         save_log('抓取初始化');
         $GLOBALS['db']->update($this->account_table, array('status'=>self::ACCOUNT_INIT,'used_time'=>0,'error_num'=>0),'status = '.self::ACCOUNT_RUN);
-        $GLOBALS['db']->update($this->condition_table, array('status'=>self::CONDITION_INIT) ,"status = ".self::CONDITION_RUN);
+        $GLOBALS['db']->update($this->condition_table, array('status'=>self::CONDITION_INIT) ,"status != ".self::CONDITION_SUC);
         $GLOBALS['db']->update($this->resume_table, array('status'=>self::RESUME_INIT) ,"status =".self::RESUME_RUN);
     }
 
