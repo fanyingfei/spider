@@ -57,6 +57,8 @@ class crawler extends basis
 
             $account = $GLOBALS['model']->get_account();
 
+            if(empty($account)) continue;
+
             $flag = $this->save_resume($account);
 
             //为真时，还有简历可抓，继续抓简历，为假时，去抓搜索条件，

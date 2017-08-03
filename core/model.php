@@ -22,7 +22,7 @@ class model extends basis{
         save_log('抓取初始化');
         $GLOBALS['db']->update($this->account_table, array('status'=>self::ACCOUNT_INIT,'used_time'=>0,'error_num'=>0),'status = '.self::ACCOUNT_RUN);
         $GLOBALS['db']->update($this->condition_table, array('status'=>self::CONDITION_INIT) ,"status != ".self::CONDITION_SUC);
-        $GLOBALS['db']->update($this->resume_table, array('status'=>self::RESUME_INIT) ,"status !=".self::RESUME_SUC);
+        $GLOBALS['db']->update($this->resume_table, array('status'=>self::RESUME_INIT) ,"status =".self::RESUME_RUN);
     }
 
     function parse_start(){
@@ -128,7 +128,7 @@ class model extends basis{
             if(empty($account)){
                 save_log('暂无空闲账号可用，休息10秒');
                 sleep(10);
-                continue;
+                return false;
             }
 
             $low_time = ACCOUNT_SLEEP_TIME - intval(ACCOUNT_SLEEP_TIME/2);
