@@ -7,7 +7,8 @@ include_once '../core/mysqli.php';
 
 $db = DBHelper::getIntance($database);
 if(empty($_POST['account'])){
-    $sql = "select * from ".$table['account_table']." where status > 1 and error_num < 50";
+    $status = empty($_GET['s']) ? 'status > 1 and error_num < 50' : 'error_num >=50';
+    $sql = "select * from ".$table['account_table']." where {$status}";
 }else{
     $sql = "select * from ".$table['account_table']." where account ='".$_POST['account']."'";
 }
@@ -18,10 +19,13 @@ if(!empty($_POST['account'])){
         echo 1;exit;
     }
     $data['cookie'] = $_POST['cookie'];
-    $data['status'] = 0;
-    $data['error_num'] = 0;
     $data['password'] = $_POST['password'];
-    if(!empty($_POST['is_delete'])) $data['is_delete'] = 1;
+    if(empty($_POST['is_delete'])){
+        $data['status'] = 0;
+        $data['error_num'] = 0;
+    }else{
+        $data['error_num'] = 99;
+    }
     if(empty($account)){
         $data['account'] = $_POST['account'];
         $res = $db->insert($table['account_table'], $data);
@@ -50,7 +54,7 @@ if(!empty($_POST['account'])){
             <button onclick="save_cookie()">保存cookie</button>
         </div>
     </div>
-    <iframe src="https://passport.liepin.com/h/account/#sfrom=click-pc_homepage-front_navigation-hunter_new">iframe页面</iframe>
+    <iframe id="iframe" src="https://passport.liepin.com/h/account/#sfrom=click-pc_homepage-front_navigation-hunter_new"></iframe>
 </body>
 <script src="js/jquery-1.10.2.min.js"></script>
 <script src="js/jquery.cookie.js"></script>

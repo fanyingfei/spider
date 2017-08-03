@@ -52,14 +52,12 @@ class parse extends basis
     public function start(){
         $GLOBALS['model']->parse_start();
         while(true){
-            if(date('H') > END_TIME) exit;
-
             save_log('开始运行前内存：'.memory_get_usage());
             $row =  $GLOBALS['model']->get_parse_info();
             save_log('开始解析数据，简历ID : '.$row['resume_id']);
             if(empty($row)){
-                sleep(600);
-                continue;
+                save_log('没有可以解析的简历，结束！ ');
+                exit;
             }
             $this->lie_parser($row);
             $GLOBALS['model']->resume_parse_suc($row);
