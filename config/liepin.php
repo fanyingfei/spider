@@ -19,7 +19,7 @@ const WEB_TYPE = 'liepin';
 //程序结束时间，建议不超过20（晚上8点）
 const END_TIME = 20;
 //账号休息平均时间，建议不小于50
-const ACCOUNT_SLEEP_TIME = 80;
+const ACCOUNT_SLEEP_TIME = 70;
 //程序六日是否执行,`1执行，０不执行
 const SATURDAY_AND_SUNDAY = 1;
 //需要发送邮件的邮件

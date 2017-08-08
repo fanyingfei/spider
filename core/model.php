@@ -126,8 +126,8 @@ class model extends basis{
             $sql = "select * from ".$this->account_table." where status = ".self::ACCOUNT_INIT ." and error_num < 50 and used_time < $time";
             $account = $GLOBALS['db']->getRow($sql);
             if(empty($account)){
-                save_log('暂无空闲账号可用，休息10秒');
-                sleep(10);
+                save_log('暂无空闲账号可用，休息3秒');
+                sleep(3);
                 return false;
             }
 

@@ -26,7 +26,7 @@ class crawler extends basis
                 return false;
             }
             $account_num = $GLOBALS['model']->get_account_count();
-            $account_time = ceil(ACCOUNT_SLEEP_TIME / 5); //一个账号按5s来算处理完一次请求，休息时间除以5代表一个进程能处理多少账号
+            $account_time = ceil(ACCOUNT_SLEEP_TIME / 3); //一个账号按5s来算处理完一次请求，休息时间除以3代表一个进程能处理多少账号
             $process_count = ceil($account_num/$account_time);
             pcntl_signal(SIGCHLD, SIG_IGN); //如果父进程不关心子进程什么时候结束,子进程结束后，内核会回收
             for($i = 0; $i<$process_count; $i++){
