@@ -49,11 +49,11 @@ class parse extends basis
         while(true){
             save_log('开始运行前内存：'.memory_get_usage());
             $row =  $GLOBALS['model']->get_parse_info();
-            save_log('开始解析数据，简历ID : '.$row['resume_id']);
             if(empty($row)){
                 save_log('没有可以解析的简历，结束！ ');
                 exit;
             }
+            save_log('开始解析数据，简历ID : '.$row['resume_id']);
             $this->lie_parser($row);
             $GLOBALS['model']->resume_parse_suc($row);
             save_log('解析数据完成，简历ID : '.$row['resume_id']);
