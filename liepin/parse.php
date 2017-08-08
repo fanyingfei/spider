@@ -44,11 +44,6 @@ class parse extends basis
         'is_entrance' => ''
     );
 
-    public function __construct ()
-    {
-
-    }
-
     public function start(){
         $GLOBALS['model']->parse_start();
         while(true){
@@ -62,6 +57,7 @@ class parse extends basis
             $this->lie_parser($row);
             $GLOBALS['model']->resume_parse_suc($row);
             save_log('解析数据完成，简历ID : '.$row['resume_id']);
+            unset($row);
         }
     }
 
@@ -78,6 +74,7 @@ class parse extends basis
         $detail = str_replace(array("&nbsp;","&amp;"), array(' ','&'), $body);
         phpQuery::newDocumentHTML($detail, 'utf-8');
         $this->_crawler = pq(".retop-wrap");
+        phpQuery::$documents = '';
 
         $this->lie_parse_info();
         $this->lie_parse_work();
