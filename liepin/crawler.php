@@ -55,6 +55,8 @@ class crawler extends basis
         while(true){
             $this->crawler_stop();
 
+            phpQuery::$documents = '';//解决phpjqery内存泄露
+
             $account = $GLOBALS['model']->get_account();
 
             if(empty($account)) continue;
