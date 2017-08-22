@@ -38,6 +38,10 @@ class model extends basis{
         return $GLOBALS['db']->getOne($sql);
     }
 
+    function update_account_qiandao($account_id){
+        $GLOBALS['db']->update($this->account_table, array('qiandao'=>date('Y-m-d')),'accout_id = '.$account_id);
+    }
+
     function get_account_count(){
         $sql = "select count(*) as total_num from ".$this->account_table.' where error_num < 50';
         return $GLOBALS['db']->getOne($sql);
