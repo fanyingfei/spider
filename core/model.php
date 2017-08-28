@@ -136,7 +136,7 @@ class model extends basis{
             }
 
             $low_time = 2;
-            $high_time = ACCOUNT_SLEEP_TIME + intval(ACCOUNT_SLEEP_TIME/2);
+            $high_time = ACCOUNT_SLEEP_TIME;
             $sleep_time = rand($low_time, $high_time);
             $used_time = time() + $sleep_time;
             $res = $GLOBALS['db']->update($this->account_table, array('status' =>self::ACCOUNT_INIT , 'used_time' => $used_time), "account_id=" . $account['account_id'].' and status = '.self::ACCOUNT_INIT);
