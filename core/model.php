@@ -39,7 +39,7 @@ class model extends basis{
     }
 
     function update_account_qiandao($account_id){
-        $GLOBALS['db']->update($this->account_table, array('qiandao'=>date('Y-m-d')),'accout_id = '.$account_id);
+        $GLOBALS['db']->update($this->account_table, array('qiandao'=>date('Y-m-d')),'account_id = '.$account_id);
     }
 
     function get_account_count(){
@@ -135,7 +135,7 @@ class model extends basis{
                 return false;
             }
 
-            $low_time = ACCOUNT_SLEEP_TIME - intval(ACCOUNT_SLEEP_TIME/2);
+            $low_time = 2;
             $high_time = ACCOUNT_SLEEP_TIME + intval(ACCOUNT_SLEEP_TIME/2);
             $sleep_time = rand($low_time, $high_time);
             $used_time = time() + $sleep_time;

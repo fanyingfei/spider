@@ -65,8 +65,8 @@ class crawler extends basis
                 save_log($account['account'].'该账号没有简历可以抓取');
                 $this->get_resume_list($account);
             }else{
-                $this->save_resume($account,$row);
                 $this->simulate_normal($account,$row);
+                $this->save_resume($account,$row);
             }
         }
     }
@@ -497,19 +497,43 @@ class crawler extends basis
 
     //模拟正常用户
     function simulate_normal($account,$row){
-        if(empty($account)){
-            $account = array('account_id'=>1,'cookie'=>'tipClose=true; _uuid=02CEFA1DFFA8420C4833FF0B55A270B8; gr_user_id=0238564a-eebe-4498-8f3e-a36e1d540c9b; __uuid=1498990702328.48; fe_h_lens=1; fe_h_new_contacts3ea884ffcc4c13df1a667e00ad0d9493=1500383435452; is_lp_user=true; fe_all_activetab=contacts; fe_h_new_contacts=1503241141962; _fecdn_=1; gr_cs1_e7d58d01-151d-4df2-b5bd-07972105ea71=UniqueKey%3A463488094d92ec581a667e00ad0d9493; abtest=0; gr_session_id_bad1b2d9162fab1f80dde1897f7a2972=e7d58d01-151d-4df2-b5bd-07972105ea71; verifycode=832114f081ff4265a013dd03445d8557; user_name=%E5%B0%B9%E6%95%8F; lt_auth=6ehfa3wFyAj9t3GP22Jbt%2F0Z3or6VGnL%2FCgLgxgGi9K7X%2FLh4P3iRQiFqLcHxBEhxk8gcMULNLD9%0D%0AMej2ynpM7ksQwGmkl4Cyvf%2Bk0H8AUeZsHv%2F30v76wMXUFJggxntWyCBipHhOwkTx4hJzZtPuyAzz%0D%0Ajojux42n8vLEgw%3D%3D%0D%0A; UniqueKey=3ea884ffcc4c13df1a667e00ad0d9493; user_kind=2; user_photo=573ab5d745ceffee6f39675e04a.jpg; _h_ld_auth_=badf850034d051b4; em_username=9716845381j2174787686; em_token=YWMtQkELPlmbEee3vY2wO9qAQU8TxtBqMxHkgus5YKfC9XE3sQCwdjUR5psVEejc9tSpAwMAAAFc3w62rQBPGgBdPGMRfyLUr3df-_sxjs4yBXvJdqmvsWlsKaj8gM7yVA; fe_h_customdialog=%7B%7D; __tlog=1503408388575.70%7C00000000%7C00000000%7C00000000%7C00000000; __session_seq=4; __uv_seq=4; JSESSIONID=033A7730EDC99E2AD670B838A33D3C6A; Hm_lvt_a2647413544f5a04f00da7eee0d5e200=1502716420,1502838142,1503241121,1503408389; Hm_lpvt_a2647413544f5a04f00da7eee0d5e200=1503408477; gr_session_id_87ae51ccbd70d69e=6fe2d8d2-27a3-441f-b452-56605738ac55; gr_cs1_6fe2d8d2-27a3-441f-b452-56605738ac55=user_id%3Ab9e4dc051b525ec24ac08cd8d934f9b8; _mscid=00000000');
+        if($account['qiandao'] != date('Y-m-d') && rand(1,3) == 1){
+            $this->qiandao($account);
+            save_log('模拟签到');
+            return true;
         }
-        if(empty($row)){
-            $row=array('sign'=>'786674f6Ffa658cd8','user_name'=>'李春变','user_sn'=>'1a24d844b454abadec30c1f6e0687580');
+        if(rand(1,100) == 1){
+            $this->my_home($account);
+            save_log('模拟个人中心');
+            return true;
         }
-        $this->attention($account,$row);exit;
+        if(rand(1,60) == 1){
+            $this->my_scan($account);
+            save_log('模拟我的浏览');
+            return true;
+        }
+        if(rand(1,40) == 1){
+            $this->attention($account);
+            save_log('模拟关注');
+            return true;
+        }
+        if(rand(1,30) == 1){
+            $this->my_resume_list($account);
+            save_log('模拟访问我的简历库');
+            return true;
+        }
+        if(rand(1,10) == 1){
+            $this->search_people($account,$row);
+            save_log('模拟搜索相似的人');
+            return true;
+        }
     }
 
     //模拟签到
     function qiandao($account){
         $url = 'https://h.liepin.com';
         grab_curl($account,$url);
+        sleep(rand(2,5));
         $url = 'https://h.liepin.com/signin/signin.json?callback=jQuery17'.date('mdHis').rand(11111111,99999999).'_'.time().rand(111,999);
         grab_curl($account,$url);
         $GLOBALS['model']->update_account_qiandao($account['account_id']);
@@ -519,7 +543,7 @@ class crawler extends basis
     function my_resume_list($account){
         $url = 'https://h.liepin.com';
         grab_curl($account,$url);
-        sleep(rand(2,10));
+        sleep(rand(2,5));
         $url = 'https://h.liepin.com/resumemanage/showmytalentlist';
         grab_curl($account,$url);
         $url_list = array(
@@ -558,6 +582,27 @@ class crawler extends basis
         $total_num = count($url_list);
         $rand_num = rand(0,$total_num-1);
         $rand_url = array_slice($url_list,$rand_num,$total_num);
+        foreach($rand_url as $one_url){
+            sleep(rand(2,10));
+            grab_curl($account,$one_url);
+        }
+    }
+
+    //个人中心
+    function my_home($account){
+        $url = 'https://h.liepin.com/certification/home/';
+        grab_curl($account,$url);
+        $url_list = array(
+            'https://h.liepin.com/profile/showgoldcoinlist/?income=1&cointype=0', //我的资源
+            'https://h.liepin.com/profile/mylevel/', //我的等级
+            'https://h.liepin.com/profile/myprivilege/', //我的特权
+            'https://h.liepin.com/consult/showmyconsultlist/', //通话管理
+            'https://h.liepin.com/profile/editbasic//', //基本信息
+        );
+        shuffle($url_list);
+        $total_num = count($url_list);
+        $rand_num = rand(0,$total_num-1);
+        $rand_url = array_slice($url_list,$rand_num,$total_num);
         foreach($rand_url as $one){
             sleep(rand(2,10));
             grab_curl($account,$one);
@@ -567,21 +612,7 @@ class crawler extends basis
     //关注
     function attention($account){
         $url = 'https://h.liepin.com/connection/getgroup.json?_='.time().rand(111,999);
-        $res = grab_curl($account,$url);print_r($res);
-        if(empty($res)) return false;
-        $group_array = json_decode($res,true);
-        $group_list = empty($group_array['data']['groups']) ? array() : $group_array['data']['groups'];
-        if(empty($group_list)){
-            $url = 'https://h.liepin.com/connection/addconnectiongroup.json';
-            $post = array('cg_parent_id'=>0,'cg_name'=>'分组'.date('Y-m-d'));
-            $res = grab_curl($account,$url,$post);
-        }
-
-        $url = 'https://h.liepin.com//connection/addattentionnew.json';
-        $referer = 'https://h.liepin.com/resume/showresumedetail/?res_id_encode=786674f6Ffa658cd8';
-        $post = array('cg_id'=>'6283737','user_ids'=>'1a24d844b454abadec30c1f6e0687580');
-        $res = post_fsockopen($url,$post,'POST','',$account['cookie']);
-        print_r($res);exit;
+        grab_curl($account,$url);
     }
 
 }
