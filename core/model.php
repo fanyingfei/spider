@@ -23,6 +23,13 @@ class model extends basis{
         $GLOBALS['db']->update($this->account_table, array('status'=>self::ACCOUNT_INIT,'used_time'=>0,'error_num'=>0),'status = '.self::ACCOUNT_RUN);
         $GLOBALS['db']->update($this->condition_table, array('status'=>self::CONDITION_INIT) ,"status != ".self::CONDITION_SUC);
         $GLOBALS['db']->update($this->resume_table, array('status'=>self::RESUME_INIT) ,"status =".self::RESUME_RUN);
+
+        //得到所有账号并初始化开始时间，避免账号每天都同一时间开始
+        $account_list = $GLOBALS['db']->getAll("select account_id from ".$this->account_table);
+        foreach($account_list as $account_one){
+            $used_time = time() + rand( 0 , 60*20);
+            $GLOBALS['db']->update($this->account_table, array('used_time'=>$used_time),'account_id = '.$account_one['account_id']);
+        }
     }
 
     function parse_start(){
@@ -135,10 +142,8 @@ class model extends basis{
                 return false;
             }
 
-            $low_time = 5;
-            $high_time = ACCOUNT_SLEEP_TIME;
-            $sleep_time = rand($low_time, $high_time);
-            $used_time = time() + $sleep_time;
+            $sleep_time = rand(5, ACCOUNT_SLEEP_TIME);
+            $used_time = time() +$sleep_time;
             $res = $GLOBALS['db']->update($this->account_table, array('status' =>self::ACCOUNT_INIT , 'used_time' => $used_time), "account_id=" . $account['account_id'].' and status = '.self::ACCOUNT_INIT);
 
             if($res){

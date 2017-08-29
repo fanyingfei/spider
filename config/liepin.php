@@ -16,9 +16,9 @@ $table['workexps_table'] = 'workexps';
 
 
 const WEB_TYPE = 'liepin';
-//程序结束时间，建议不超过20（晚上8点）
+//程序结束时间，建议不超过18（晚上6点）
 const END_TIME = 18;
-//账号休息平均时间，建议不小于50
+//账号休息平均时间，建议不小于150
 const ACCOUNT_SLEEP_TIME = 180;
 //程序六日是否执行,`1执行，０不执行
 const SATURDAY_AND_SUNDAY = 1;
