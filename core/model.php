@@ -135,7 +135,7 @@ class model extends basis{
                 return false;
             }
 
-            $low_time = 2;
+            $low_time = 5;
             $high_time = ACCOUNT_SLEEP_TIME;
             $sleep_time = rand($low_time, $high_time);
             $used_time = time() + $sleep_time;
