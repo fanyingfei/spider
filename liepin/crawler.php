@@ -60,14 +60,13 @@ class crawler extends basis
 
             if(empty($account)) continue;
 
-
             $row = $GLOBALS['model']->get_resume_info($account['account']);
             if (empty($row)) {
                 save_log($account['account'].'该账号没有简历可以抓取');
                 $this->get_resume_list($account);
             }else{
-                $this->simulate_normal($account,$row);
                 $this->save_resume($account,$row);
+                $this->simulate_normal($account,$row);
             }
 
         }
@@ -521,14 +520,24 @@ class crawler extends basis
             save_log('模拟我的浏览');
             return true;
         }
+        if(rand(1,50) == 1){
+            $this->zhuan_resume($account,$row);
+            save_log('模拟转发简历');
+            return true;
+        }
         if(rand(1,40) == 1){
-            $this->attention($account);
+            $this->attention($account,$row);
             save_log('模拟关注');
             return true;
         }
         if(rand(1,30) == 1){
             $this->my_resume_list($account);
             save_log('模拟访问我的简历库');
+            return true;
+        }
+        if(rand(1,20) == 1){
+            $this->search_condition($account);
+            save_log('模拟访问找人选');
             return true;
         }
         if(rand(1,10) == 1){
@@ -540,19 +549,22 @@ class crawler extends basis
 
     //模拟签到
     function qiandao($account){
-        $url = 'https://h.liepin.com';
-        grab_curl($account,$url);
-        sleep(rand(2,5));
+        sleep(rand(2,10));
         $url = 'https://h.liepin.com/signin/signin.json?callback=jQuery17'.date('mdHis').rand(11111111,99999999).'_'.time().rand(111,999);
         grab_curl($account,$url);
         $GLOBALS['model']->update_account_qiandao($account['account_id']);
     }
 
+    //模拟找人选
+    function search_condition($account){
+        sleep(rand(2,10));
+        $url = 'https://h.liepin.com/cvsearch/soCondition/';
+        grab_curl($account,$url);
+    }
+
     //模拟访问我的简历库
     function my_resume_list($account){
-        $url = 'https://h.liepin.com';
-        grab_curl($account,$url);
-        sleep(rand(2,5));
+        sleep(rand(2,10));
         $url = 'https://h.liepin.com/resumemanage/showmytalentlist';
         grab_curl($account,$url);
         $url_list = array(
@@ -572,8 +584,27 @@ class crawler extends basis
         }
     }
 
+    //模拟转发简历
+    function zhuan_resume($account,$row){
+        sleep(rand(2,10));
+        $account['cookie'] = 'tipClose=true; _uuid=02CEFA1DFFA8420C4833FF0B55A270B8; gr_user_id=0238564a-eebe-4498-8f3e-a36e1d540c9b; __uuid=1498990702328.48; fe_h_lens=1; fe_h_new_contacts3ea884ffcc4c13df1a667e00ad0d9493=1500383435452; is_lp_user=true; fe_all_activetab=contacts; fe_h_new_contacts=1503241141962; abtest=0; _fecdn_=1; gr_session_id_bad1b2d9162fab1f80dde1897f7a2972=5912bb4e-9d25-448e-811e-cd5d4d303dd9; verifycode=61ca8d5f2ffa4b4f8166f21d24778c26; user_name=%E8%8C%83%E9%A2%96%E9%A3%9E; lt_auth=7uwCOCNUnVz47XDe3TdW5%2FwfjYqgVWmf93VbgR0Ci9ftWvC34P%2FrQgOBqLUAxBEhlkx8c8ULNLD6%0D%0ANOD5z3BP6EQbwGmkl4Cyvf%2Bk0H8AUeZsHv%2F30v76wMXUFJggxntWyCBipHhOwkTx4hJzZtPuyAzz%0D%0Ajojux42n8vLEgw%3D%3D%0D%0A; UniqueKey=a38b2bbc98521e2f1a667e00ad0d9493; user_kind=2; user_photo=59a41a3270329a7ecb85979406a.png; _h_ld_auth_=badf850034d051b4; fe_h_sign_ina38b2bbc98521e2f1a667e00ad0d9493=%7B%22data%22%3A%7B%22signDate%22%3A%2220170831%22%2C%22conti_days%22%3A3%2C%22coins%22%3A3%2C%22tomorrow_coins%22%3A4%2C%22status%22%3A1%7D%7D; em_username=4869259618e2694877358; em_token=YWMt_VO07n41Eee0pL1img9Tpk8TxtBqMxHkgus5YKfC9XHKH-bwsrIR5pl2-5G3YobWAwMAAAFdzvK8EQBPGgAjO6vdKQczc75y7Bd4Wq3aVgNI6HgbAS-6-h2OqfSbIA; fe_h_gr=1; fe_h_customdialog=%7B%7D; __tlog=1504187584364.82%7C00000000%7C00000000%7C00000000%7C00000000; __session_seq=13; __uv_seq=13; _mscid=00000000; Hm_lvt_a2647413544f5a04f00da7eee0d5e200=1504052137,1504052590,1504187585,1504187625; Hm_lpvt_a2647413544f5a04f00da7eee0d5e200=1504188381; JSESSIONID=3D8D273E9BA4FAC34A0BF82B1C728B8D; gr_session_id_87ae51ccbd70d69e=4cbb6c7b-1522-4cd7-8a64-44636f989479; gr_cs1_4cbb6c7b-1522-4cd7-8a64-44636f989479=user_id%3A3deb60838f5998f5e7b35dc19722e8b9';
+        $row['sign'] = '6696927cS765046f1';
+        $url = 'https://h.liepin.com/resumemanage/getresforwardcontacts.json';
+        grab_curl($account,$url ,array('res_id_encode'=>$row['sign']));
+        $url = 'https://h.liepin.com/resumemanage/gethcompcolleagues.json';
+        $res = grab_curl($account,$url,'',RESUME_DETAIL.'?res_id_encode='.$row['sign']);
+        $arr = json_decode($res,true);
+        $list = $arr['data']['list'];
+        $randrom = rand(0,count($list)-1);
+        $userh_id = $list[$randrom]['userh_id'];
+
+        $url = 'https://h.liepin.com/resumemanage/forwardres.json';
+        grab_curl($account,$url,'res_id_encode='.$row['sign'].'&receivers='.$userh_id ,RESUME_DETAIL.'?res_id_encode='.$row['sign']);
+    }
+
     //搜索相关人
     function search_people($account,$row){
+        sleep(rand(2,10));
         $res_id_encode = $row['sign'];
         $res_name = $row['user_name'];
         $url = 'https://h.liepin.com/resumemanage/sosimilartalent/?res_id_encode='.$res_id_encode.'&resName='.$res_name;
@@ -582,6 +613,7 @@ class crawler extends basis
 
     //我的浏览量
     function my_scan($account){
+        sleep(rand(2,10));
         $url = 'https://h.liepin.com';
         grab_curl($account,$url);
         $url_list = array(
@@ -599,6 +631,7 @@ class crawler extends basis
 
     //个人中心
     function my_home($account){
+        sleep(rand(2,10));
         $url = 'https://h.liepin.com/certification/home/';
         grab_curl($account,$url);
         $url_list = array(
@@ -619,9 +652,15 @@ class crawler extends basis
     }
 
     //关注
-    function attention($account){
+    function attention($account,$row){
+        sleep(rand(2,10));
         $url = 'https://h.liepin.com/connection/getgroup.json?_='.time().rand(111,999);
-        grab_curl($account,$url);
+        $group_res = grab_curl($account,$url);
+        $group_data = json_decode($group_res,true);
+        $group_list = $group_data['data']['groups'];
+
+        $url = 'https://h.liepin.com//connection/addattentionnew.json';
+        grab_curl($account,$url,('user_ids='.$row['user_sn'].'&cg_id=0'),RESUME_DETAIL.'?res_id_encode='.$row['sign']);
     }
 
 }

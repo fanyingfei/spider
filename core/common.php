@@ -14,12 +14,19 @@
         file_put_contents($file,'['.$status.']------'.date('H:i:s').'------'.$msg."\n",FILE_APPEND);
     }
 
-    function grab_curl($account,$url,$post='',$referer = ''){
+    function grab_curl($account,$url,$post='',$referer=''){
         $header = array(
             'Connection: keep-alive',
             'Content-Type: application/x-www-form-urlencoded',
             'Content-Encoding:gzip'
         );
+
+        if(!empty($referer)){
+            array_push($header,'Referer:'.$referer);
+            array_push($header,'X-Alt-Referer:'.$referer);
+            array_push($header,'X-Requested-With:XMLHttpRequest');
+        }
+
         $referer = empty($referer) ? 'https://h.liepin.com' : $referer;
         array_push($header,'Referer: '.$referer);
         $ch = curl_init();//初始化curl模块
