@@ -27,7 +27,9 @@ class model extends basis{
         //得到所有账号并初始化开始时间，避免账号每天都同一时间开始
         $account_list = $GLOBALS['db']->getAll("select account_id from ".$this->account_table);
         foreach($account_list as $account_one){
-            $used_time = time() + rand( 0 , 60*20);
+			$sleep_time = rand( 0 , 60*20);
+            $used_time = time() + $sleep_time;
+            save_log('账号ID : '.$account_one['account_id'].' 开始抓取时间推后'.$sleep_time.'秒');
             $GLOBALS['db']->update($this->account_table, array('used_time'=>$used_time),'account_id = '.$account_one['account_id']);
         }
     }

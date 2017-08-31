@@ -56,9 +56,10 @@ class crawler extends basis
             phpQuery::$documents = '';//解决phpjqery内存泄露
 
             $account = $GLOBALS['model']->get_account();
+            $this->crawler_stop($account);
+
             if(empty($account)) continue;
 
-            $this->crawler_stop($account);
 
             $row = $GLOBALS['model']->get_resume_info($account['account']);
             if (empty($row)) {
@@ -398,7 +399,7 @@ class crawler extends basis
         $GLOBALS['model']->insert_conditions($data);
     }
 
-    public function crawler_stop($account){
+    public function crawler_stop($account = ''){
         $w = date("w");
         if($w == 0 || $w == 6){
 			if(SATURDAY_AND_SUNDAY && date('H') >= END_TIME - 2) {
@@ -411,15 +412,15 @@ class crawler extends basis
             save_log('中午休息，停止抓取');
             sleep($time);
         }
-       if(date('H') >= END_TIME + 2) {
+       if(date('H') >= (END_TIME + 2)) {
            save_log('一天抓取结束');
            exit;
        }
         if(date('H') >= END_TIME ){
             //退出时间每天不一样
-            if(rand(1,10) == 1){
+            if(rand(1,10) == 1 && !empty($account)){
                 $GLOBALS['model']->update_account_status(self::ACCOUNT_LOGIN,$account['account_id']);
-                save_log('账号：'.$account['account_id'].'一天抓取结束');
+                save_log('账号退出[ID：'.$account['account_id'].']，一天抓取结束，结束时间 : '.date('Y-m-d H:i:s'));
             }
         }
     }
