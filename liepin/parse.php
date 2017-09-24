@@ -65,6 +65,7 @@ class parse extends basis
     public function lie_parser($row){
         $this->_crawler = '';
         $this->_parse_result = array();
+        phpQuery::$documents = '';
 
         $this->_resume_id = $row['resume_id'];
         $body = $row['content'];
@@ -74,7 +75,6 @@ class parse extends basis
         $detail = str_replace(array("&nbsp;","&amp;"), array(' ','&'), $body);
         phpQuery::newDocumentHTML($detail, 'utf-8');
         $this->_crawler = pq(".retop-wrap");
-        phpQuery::$documents = '';
 
         $this->lie_parse_info();
         $this->lie_parse_work();
@@ -83,7 +83,7 @@ class parse extends basis
         $this->lie_parse_language();
         $this->lie_parse_remark();
         $this->lie_resume_others();
-
+        print_r($this->_parse_result);exit;
         if(!empty($this->_parse_result['project'])) $GLOBALS['model']->save_project($this->_resume_id,$this->_parse_result['project']);
         if(!empty($this->_parse_result['work'])) $GLOBALS['model']->save_workepx($this->_resume_id,$this->_parse_result['work']);
         if(!empty($this->_parse_result['education'])) $GLOBALS['model']->save_education($this->_resume_id,$this->_parse_result['education']);

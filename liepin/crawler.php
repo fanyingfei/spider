@@ -399,13 +399,6 @@ class crawler extends basis
     }
 
     public function crawler_stop($account = ''){
-        $w = date("w");
-        if($w == 0 || $w == 6){
-			if(SATURDAY_AND_SUNDAY && date('H') >= END_TIME - 2) {
-			   save_log('一天抓取结束');
-			   exit;
-			}
-       }
         if(date('H') >= 12 && date('H') < 13){
             $time = mt_rand(2400,5400);
             save_log('中午休息，停止抓取');
@@ -510,14 +503,24 @@ class crawler extends basis
             save_log('模拟签到');
             return true;
         }
+        if(rand(1,120) == 1){
+            $this->dlld($account);
+            save_log('模拟访问大猎论道');
+            return true;
+        }
         if(rand(1,100) == 1){
             $this->my_home($account);
-            save_log('模拟个人中心');
+            save_log('模拟访问个人中心');
+            return true;
+        }
+        if(rand(1,90) == 1){
+            $this->createnewhjob($account);
+            save_log('模拟访问发布职位页面');
             return true;
         }
         if(rand(1,60) == 1){
             $this->my_scan($account);
-            save_log('模拟我的浏览');
+            save_log('模拟访问我的浏览');
             return true;
         }
         if(rand(1,50) == 1){
@@ -647,6 +650,20 @@ class crawler extends basis
             sleep(rand(2,10));
             grab_curl($account,$one);
         }
+    }
+
+    //大猎论道
+    function dlld($account){
+        sleep(rand(2,10));
+        $url = 'https://h.liepin.com/dlld';
+        grab_curl($account,$url);
+    }
+
+    //发布职位
+    function createnewhjob($account){
+        sleep(rand(2,10));
+        $url = 'https://h.liepin.com/job/createnewhjob/';
+        grab_curl($account,$url);
     }
 
     //关注
