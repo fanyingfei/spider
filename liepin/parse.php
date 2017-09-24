@@ -83,7 +83,7 @@ class parse extends basis
         $this->lie_parse_language();
         $this->lie_parse_remark();
         $this->lie_resume_others();
-        print_r($this->_parse_result);exit;
+        
         if(!empty($this->_parse_result['project'])) $GLOBALS['model']->save_project($this->_resume_id,$this->_parse_result['project']);
         if(!empty($this->_parse_result['work'])) $GLOBALS['model']->save_workepx($this->_resume_id,$this->_parse_result['work']);
         if(!empty($this->_parse_result['education'])) $GLOBALS['model']->save_education($this->_resume_id,$this->_parse_result['education']);
